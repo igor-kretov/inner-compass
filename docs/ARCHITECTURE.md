@@ -44,7 +44,7 @@ Die lokale Datenbank heißt `inner-compass`; das aktuelle Dexie-Datenbankschema 
 
 | Entität | Zweck |
 | --- | --- |
-| `AppSettings` | Rhythmus, Fokusstandard, Theme, Töne, Haptik und Lebensanker |
+| `AppSettings` | Rhythmus, Fokusstandard, Theme, Töne, Haptik, gemerkte Bewegungsarten und ein optionales aktives Identitätsprofil; das alte Ankerfeld bleibt nur importkompatibel |
 | `OnboardingState` | Fortschritt und Abschluss des Onboardings |
 | `DailyPlan` | lokaler Kalendertag, Tageszustand und Referenzen auf die geordneten Aufgaben |
 | `DailyTask` | Haupt- und dynamische Aufgaben mit Tagesabschnitt, optionaler Uhrzeit und stabilem Status |
@@ -54,12 +54,14 @@ Die lokale Datenbank heißt `inner-compass`; das aktuelle Dexie-Datenbankschema 
 | `FocusSession` | Ziel, erwartetes Ergebnis, persistenter Timer und Abschluss |
 | `MeditationSession` | Dauer, Fokus, Zeitpunkte und wertungsfreie Rückmeldung |
 | `ResetSession` | kurze Einordnung, körperliche Option und Rückkehrhandlung |
-| `DailyReflection` | kompakter Tagesabschluss |
+| `DailyReflection` | kompakter Tagesabschluss mit optionalem persönlichem Identitätsbeleg |
 | `WeeklyReview` | Antworten und verdichtete Wochenkarte |
 | `PatternEntry` | freiwilliger Trigger-, Körper-, Gedanken- und Handlungsdatensatz |
 | `EmergencyContact` | optionaler persönlicher Kontakt, nur lokal |
 
 Persistente Datensätze besitzen grundsätzlich eine stabile UUID, `createdAt`, `updatedAt` und – wo fachlich relevant – Schema-Version, IANA-Zeitzone und lokales Tagesdatum. Zeitpunkte werden als UTC-kompatible ISO-Werte gespeichert; ein Kalendertag wird nicht nachträglich aus UTC erraten.
+
+Das Identitätsprofil liegt additiv im nicht indizierten Einstellungsdatensatz und benötigt deshalb keine neue Dexie-Collection. Automatische Belege werden zur Anzeige rein aus vorhandenen Abschlussdaten abgeleitet und nicht als zweites Ereignis gespeichert. So verschwindet ein Beleg wieder, wenn eine Aufgabe bewusst geöffnet wird, und Export beziehungsweise Import behalten nur eine Datenquelle. Gespeichert werden lediglich der aktive glaubwürdige Satz, eine optionale Rückkehrhandlung, optionale Neurahmung, Startzeitpunkt und Tage mit freiwilliger mentaler Probe.
 
 ## Planermodell
 

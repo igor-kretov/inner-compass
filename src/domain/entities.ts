@@ -85,6 +85,29 @@ export const AppSettingsSchema = BaseEntitySchema.extend({
   timerSoundEnabled: z.boolean().default(true),
   hapticFeedbackEnabled: z.boolean().default(true),
   anchors: z.array(z.enum(LIFE_ANCHORS)).max(3).default([]),
+  movementCategories: z
+    .array(shortText(100).min(1))
+    .max(30)
+    .default(["Muay Thai", "Fitness", "Spaziergang", "Laufen", "Mobility", "Erholung"]),
+  identityPractice: z
+    .object({
+      statement: shortText(240).min(1),
+      action: optionalShortText(300),
+      startedAt: IsoTimestampSchema,
+      oldStory: optionalShortText(500),
+      reframe: optionalShortText(500),
+      rehearsalDates: z
+        .array(LocalDateSchema)
+        .max(366)
+        .refine(
+          (dates) => new Set(dates).size === dates.length,
+          "Mentale Proben müssen eindeutigen Tagen zugeordnet sein.",
+        )
+        .default([]),
+    })
+    .strict()
+    .nullable()
+    .default(null),
   emergencyContactId: StableIdSchema.nullable().default(null),
 }).strict();
 
@@ -193,12 +216,18 @@ export const FocusSessionSchema = BaseEntitySchema.extend({
   hyperfocusAcknowledgedAt: IsoTimestampSchema.nullable().default(null),
 }).strict();
 
+export const MeditationFocusSchema = z.enum([
+  "breath",
+  "body",
+  "sounds",
+  "thoughts",
+  "open",
+  "identity-rehearsal",
+]);
+
 export const MeditationSessionSchema = BaseEntitySchema.extend({
   localDate: LocalDateSchema,
-  focus: z
-    .enum(["breath", "body", "sounds", "thoughts", "open"])
-    .nullable()
-    .default(null),
+  focus: MeditationFocusSchema.nullable().default(null),
   status: TimerStatusSchema,
   plannedDurationSeconds: z.number().int().min(60).max(3_600),
   startedAt: IsoTimestampSchema,
@@ -265,6 +294,7 @@ export const DailyReflectionSchema = BaseEntitySchema.extend({
   whatMattered: optionalShortText(500),
   leaveBehind: optionalShortText(500),
   note: optionalShortText(500),
+  identityEvidence: optionalShortText(500),
 }).strict();
 
 const optionalReviewAnswer = optionalShortText(1_000);

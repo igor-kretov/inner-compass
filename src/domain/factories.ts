@@ -102,6 +102,8 @@ export function createDefaultSettings(options: {
     timerSoundEnabled: true,
     hapticFeedbackEnabled: true,
     anchors: [],
+    movementCategories: ["Muay Thai", "Fitness", "Spaziergang", "Laufen", "Mobility", "Erholung"],
+    identityPractice: null,
     emergencyContactId: null,
   });
 }

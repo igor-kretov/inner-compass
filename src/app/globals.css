@@ -167,7 +167,6 @@ html[data-theme="dark"] {
 }
 
 html {
-  min-width: 320px;
   min-height: 100%;
   scroll-behavior: smooth;
   text-rendering: optimizeLegibility;
@@ -351,6 +350,8 @@ hr {
 
 .control {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 3rem;
   border: 1px solid var(--ic-line-strong);
   border-radius: 0.875rem;
@@ -443,6 +444,16 @@ hr {
   border-radius: 1rem;
   background: var(--ic-surface-muted);
   padding: 0.25rem;
+}
+
+.segmented-tabs.four-tabs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 40rem) {
+  .segmented-tabs.four-tabs {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .segmented-tabs button {

@@ -42,6 +42,7 @@ function completeUiState(): AppState {
       reviewTime: "18:00",
       focusDuration: 50,
       anchors: ["Körper", "Mut"],
+      movementCategories: ["Muay Thai", "Fitness", "Spaziergang"],
       theme: "dark",
       sounds: true,
       haptics: false,
@@ -65,9 +66,11 @@ function completeUiState(): AppState {
         secondaryTasks: [{ id: ID.secondary, title: "Anrufen", completed: false }],
         bodyActivity: "Krafttraining",
         bodyCompleted: true,
+        bodyCompletedAt: "2025-04-10T10:00:00.000Z",
         meditationMinutes: 10,
         meditationSkipped: false,
         meditationCompleted: true,
+        meditationCompletedAt: "2025-04-10T11:00:00.000Z",
         courageousAction: "Feedback erfragen",
         courageousCompleted: false,
         startTime: "09:00",
@@ -241,7 +244,12 @@ describe("AppState/DataStore-Adapter", () => {
     expect(data).toMatchObject({
       appSettings: [{ schemaVersion: 2, timeZone: "Europe/Zurich" }],
       onboardingStates: [{ completed: true }],
-      dailyPlans: [{ id: ID.plan, primaryTaskId: ID.primary }],
+      dailyPlans: [{
+        id: ID.plan,
+        primaryTaskId: ID.primary,
+        bodyCompletedAt: "2025-04-10T10:00:00.000Z",
+        meditationCompletedAt: "2025-04-10T11:00:00.000Z",
+      }],
       dailyTasks: [{ id: ID.primary }, { id: ID.secondary }],
       focusSessions: [{ id: ID.focus, status: "review", accumulatedPausedMs: 300_000 }],
       meditationSessions: [{ id: ID.meditation, presenceAfter: "not-rated" }],
@@ -293,12 +301,15 @@ describe("AppState/DataStore-Adapter", () => {
       settings: {
         name: "Igor",
         anchors: ["Körper", "Mut"],
+        movementCategories: ["Muay Thai", "Fitness", "Spaziergang"],
         emergencyName: "Alex",
       },
       activeFocusId: ID.focus,
       plans: [
         {
           id: ID.plan,
+          bodyCompletedAt: "2025-04-10T10:00:00.000Z",
+          meditationCompletedAt: "2025-04-10T11:00:00.000Z",
           mainTask: { id: ID.primary, completed: true },
           secondaryTasks: [{ id: ID.secondary }],
           reflection: { important: "Der erste Entwurf" },
@@ -342,6 +353,13 @@ describe("AppState/DataStore-Adapter", () => {
     expect(restored.weeklyReviews[0].answers).toEqual(
       Array.from({ length: 10 }, (_, index) => `Antwort ${index + 1}`),
     );
+  });
+
+  it("bewahrt eine bewusst leere Liste eigener Bewegungsarten", () => {
+    const state = completeUiState();
+    state.settings.movementCategories = [];
+
+    expect(dataStoreToAppState(appStateToDataStore(state)).settings.movementCategories).toEqual([]);
   });
 
   it("ersetzt ältere Nicht-UUID-IDs deterministisch und hält Referenzen konsistent", () => {
@@ -465,6 +483,71 @@ describe("AppState/DataStore-Adapter", () => {
     expect(second.weekPlans[0].outcomes.map((item) => item.id)).toEqual(
       first.weekPlans[0].outcomes.map((item) => item.id),
     );
+  });
+
+  it("erhält Identitätspraxis und einen manuellen Identitätsbeweis im Roundtrip", () => {
+    const state = completeUiState();
+    state.settings.identity = {
+      statement: "Ich bin jemand, der seine Zusagen hält.",
+      action: "Ich beginne mit dem kleinsten sinnvollen Schritt.",
+      startedAt: "2025-04-10T07:00:00.000Z",
+      reframe: "Ich habe bereits oft neu begonnen und weitergemacht.",
+      rehearsalDates: ["2025-04-10", "2025-04-11"],
+    };
+    state.plans[0].reflection = {
+      ...state.plans[0].reflection!,
+      identityEvidence: "Ich habe trotz Widerstand angefangen.",
+    };
+
+    const data = appStateToDataStore(state);
+    expect(data.appSettings[0].identityPractice).toEqual(state.settings.identity);
+    expect(data.dailyReflections[0].identityEvidence).toBe(
+      "Ich habe trotz Widerstand angefangen.",
+    );
+
+    const restored = dataStoreToAppState(data);
+    expect(restored.settings.identity).toEqual(state.settings.identity);
+    expect(restored.plans[0].reflection?.identityEvidence).toBe(
+      "Ich habe trotz Widerstand angefangen.",
+    );
+  });
+
+  it("erhält Ausrichtung als eigenen Meditationsfokus im Roundtrip", () => {
+    const state = completeUiState();
+    state.meditationSessions[0].focus = "Ausrichtung";
+
+    const data = appStateToDataStore(state);
+    expect(data.meditationSessions[0].focus).toBe("identity-rehearsal");
+    expect(dataStoreToAppState(data).meditationSessions[0].focus).toBe("Ausrichtung");
+  });
+
+  it("behält bei begrenzten Einstellungen die neuesten Kategorien und Probentage", () => {
+    const state = completeUiState();
+    const movementCategories = Array.from(
+      { length: 31 },
+      (_, index) => `Bewegung ${String(index + 1).padStart(2, "0")}`,
+    );
+    const rehearsalDates = Array.from({ length: 367 }, (_, index) => {
+      const date = new Date(Date.UTC(2025, 0, index + 1));
+      return date.toISOString().slice(0, 10);
+    });
+    state.settings.movementCategories = movementCategories;
+    state.settings.identity = {
+      statement: "Ich halte meine Zusagen ruhig und verlässlich.",
+      startedAt: "2025-01-01T08:00:00.000Z",
+      rehearsalDates,
+    };
+
+    const data = appStateToDataStore(state);
+    const storedMovements = data.appSettings[0].movementCategories;
+    const storedRehearsals = data.appSettings[0].identityPractice?.rehearsalDates;
+
+    expect(storedMovements).toHaveLength(30);
+    expect(storedMovements.at(0)).toBe(movementCategories[1]);
+    expect(storedMovements.at(-1)).toBe(movementCategories.at(-1));
+    expect(storedRehearsals).toHaveLength(366);
+    expect(storedRehearsals?.at(0)).toBe(rehearsalDates[1]);
+    expect(storedRehearsals?.at(-1)).toBe(rehearsalDates.at(-1));
   });
 
   it("legt ohne Telefonnummer keinen unvollständigen Notfallkontakt an", () => {

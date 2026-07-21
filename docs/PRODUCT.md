@@ -33,6 +33,10 @@ Der Tageskern beginnt mit höchstens einer Hauptaufgabe, zwei unterstützenden A
 
 Es gibt keine Punkte, Rankings, Leistungsnoten, zerstörten Streaks oder roten Warnungen für ausgelassene Routinen. Fortschritt wird als neutrale Kontinuität gezeigt, etwa „An vier der letzten sieben Tage hast du bewusst geplant.“
 
+### Identität durch beobachtbare Belege
+
+Eine glaubwürdige, verhaltensnahe Ausrichtung verbindet Selbstbild und Handlung, etwa „Ich beginne klein und kehre ruhig zurück.“ Sie ist kein positives Etikett und kein Erfolgsversprechen. Tagesplanung, Fokus, Bewegung, Meditation, mutige Handlungen und Routinen erzeugen automatisch ruhige Belege aus ohnehin vorhandenen Daten. Offene oder ausgelassene Punkte werden nie als Gegenbeweis gewertet. Eine 21-Tage-Anzeige ist lediglich ein freiwilliger Review-Rahmen ohne Streak oder Behauptung, Veränderung sei danach abgeschlossen. Eine reine Änderung der kleinen Rückkehrhandlung erhält den Rahmen; ein materiell neuer Identitätssatz beginnt bewusst einen neuen Zeitraum, damit frühere Belege nicht rückwirkend umgedeutet werden.
+
 ### Körper und Geist gemeinsam betrachten
 
 Bei Gedankenschleifen oder langem Fokus folgt nicht nur eine weitere Frage. Die App bietet auch Atem, Wasser, Gehen, Bewegung und einen Blick weg vom Bildschirm als konkrete Rückkehr an.
@@ -61,11 +65,11 @@ Onboarding und Meditation sind eigenständige, kontextuell erreichbare Flows, ab
 
 ### Onboarding
 
-Höchstens fünf kurze Schritte erklären den Zweck, erfassen optionale Tageszeiten, wählen eine Standard-Fokusdauer und bis zu drei Lebensanker und schließen mit einem klaren Datenschutz- und Medizinhinweis. Abbruch blockiert die App nicht dauerhaft; das Onboarding kann später erneut geöffnet werden.
+Vier kurze Schritte erklären den Zweck, erfassen optionale Tageszeiten, wählen eine glaubwürdige Handlungsidentität und schließen mit einem klaren Datenschutz- und Medizinhinweis. Die Fokusdauer bleibt später in den Einstellungen anpassbar. Abbruch blockiert die App nicht dauerhaft; das Onboarding kann später erneut geöffnet werden. Lebensbereiche werden erst wieder aufgenommen, wenn sie als zeitlich begrenzte, planbare Saisons einen sichtbaren Nutzen im Produkt haben.
 
 ### Heute
 
-Der wichtigste Screen verbindet eine optionale Ein-Tap-Zustandsangabe mit einer begrenzten Tagesplanung. Eine Datumsleiste macht einzelne Kalendertage direkt erreichbar. Nach dem Speichern wechselt der Tageskern in eine reduzierte Ausführungsansicht. Hauptaufgabe, zusätzliche Aufgaben und Routinen erscheinen in den Abschnitten Morgen, Tag und Abend; eine optionale Uhrzeit dient nur als weicher Startanker. Aufgaben sind abhakbar, ohne Punkte oder Konfetti. Ein ungeplanter Tag erhält eine neutrale Einladung, eine Sache zu wählen.
+Der wichtigste Screen trennt Vorbereitung und Ausführung. Ein prominenter Einstieg plant den Folgetag idealerweise am Vorabend; beim Öffnen am nächsten Morgen erscheint dieser Plan direkt. Hauptaufgabe und nächster sichtbarer Schritt werden ohne zusätzliches Formular zum konkreten Beleg der gewählten Identität. Eine kurze mentale Probe bleibt freiwillig. Eine Datumsleiste macht weitere Kalendertage erreichbar. Nach dem Speichern wechselt der Tageskern in eine reduzierte Ausführungsansicht. Hauptaufgabe, eine anfangs auf zwei Felder begrenzte, aber erweiterbare Liste zusätzlicher Aufgaben und Routinen erscheinen in den Abschnitten Morgen, Tag und Abend. Bewegung lässt sich aus gemerkten Kategorien wählen oder als neue Kategorie ergänzen. Meditation und mutige Handlung können ebenfalls im Voraus geplant werden. Eine optionale Uhrzeit dient nur als weicher Startanker. Zukünftige Pläne sind noch nicht abhakbar; Aufgaben am aktuellen Tag bleiben ohne Punkte oder Konfetti erledigbar. Ein ungeplanter Tag erhält eine neutrale Einladung, eine Sache zu wählen.
 
 ### Planer: Aufgaben, Routinen und Woche
 
@@ -79,7 +83,7 @@ Für jeden passenden Tag entsteht eine eigenständige Routineinstanz als Momenta
 
 ### Fokus und Starthelfer
 
-Vor einem Fokusblock steht ein sichtbar erwartetes Ergebnis. Daueroptionen reichen vom 10-Minuten-Einstieg bis zu 90 Minuten beziehungsweise einer begrenzten freien Dauer. Der Timer kann nach Reload aus Zeitpunkten rekonstruiert werden. „Ich bin abgedriftet“ führt zu einem kleinsten nächsten Schritt und einer fünfminütigen Rückkehr. Nach langen oder aufeinanderfolgenden Blöcken folgt ein ruhiger, übersteuerbarer Körperhinweis.
+Vor einem Fokusblock steht ein sichtbar erwartetes Ergebnis. Bei aktiver Identitätsausrichtung erinnert ein kurzer, nicht blockierender Hinweis an Ausatmen, körperliches Lösen und den ersten Schritt. Daueroptionen reichen vom 10-Minuten-Einstieg bis zu 90 Minuten beziehungsweise einer begrenzten freien Dauer. Der Timer kann nach Reload aus Zeitpunkten rekonstruiert werden. „Ich bin abgedriftet“ führt zu einem kleinsten nächsten Schritt und einer fünfminütigen Rückkehr; Zurückkehren gilt als Übung, nicht als Scheitern. Nach langen oder aufeinanderfolgenden Blöcken folgt ein ruhiger, übersteuerbarer Körperhinweis.
 
 Der Starthelfer verkleinert eine zu große, langweilige, unklare, angstbesetzte oder unter Erschöpfung beziehungsweise Ablenkung stockende Aufgabe und startet direkt einen zehnminütigen Fokusblock.
 
@@ -91,7 +95,7 @@ Eine kleine lokale Liste eindeutiger Krisenformulierungen kann statisch auf prof
 
 ### Meditation
 
-Ein schlichter Timer unterstützt 5, 10, 20 oder bis zu 60 benutzerdefinierte Minuten. Ein optionaler Fokus, optionale dezente Töne und eine wertungsfreie Abschlussfrage reichen aus. Die Qualität der Meditation wird nicht bewertet.
+Ein schlichter Timer unterstützt 5, 10, 20 oder bis zu 60 benutzerdefinierte Minuten. Bei aktiver Identitätsausrichtung ergänzt ein optionaler dreiminütiger Modus Entspannung, den ersten sichtbaren Schritt, erwartbaren Widerstand und eine ruhige Rückkehr. Ein optionaler Fokus, optionale dezente Töne und eine wertungsfreie Abschlussfrage reichen aus. Die Qualität der Meditation wird nicht bewertet.
 
 ### Reflexion und Muster
 
@@ -99,11 +103,13 @@ Das Wochenreview ist überspringbar und in ungefähr zehn Minuten machbar. Es er
 
 Das Wochenreview bleibt von der direkten Wochenplanung im Today-Tab getrennt: Der Planer organisiert kommende Aufgaben, während das Review rückblickend verdichtet.
 
+Der Bereich „Identität“ zeigt den aktiven Arbeitssatz und automatisch abgeleitete, beobachtbare Belege. Ein optionaler Glaubenssatz-Check stellt vier rationale Prüffragen und speichert nur die bewusst formulierte Neurahmung. Die App macht daraus keine Diagnose, Quote oder Bewertung. Der Tagesabschluss kann höchstens einen zusätzlichen persönlichen Beleg aufnehmen, falls etwas Wichtiges nicht automatisch erkannt wurde.
+
 Das Musterprotokoll bevorzugt Auswahlfelder. Unter fünf relevanten Einträgen zeigt die App keine Aussage, bei fünf bis neun nur vorsichtige Hinweise und ab zehn einfache Häufigkeiten. Jede Formulierung bleibt beobachtend: gemeinsames Auftreten ist kein Beweis für eine Ursache.
 
 ### Datenkontrolle
 
-Einstellungen enthalten Rhythmus, Fokusdauer, Theme, Lebensanker, optionalen Notfallkontakt, erneutes Onboarding, Datenschutzhinweise und App-Version. Alle Nutzerdaten können als lesbares, versioniertes JSON exportiert, nach Vorschau ersetzt oder zusammengeführt und nach doppelter Bestätigung gelöscht werden.
+Einstellungen enthalten Identitäts-Kompass, Rhythmus, Fokusdauer, Theme, optionalen Notfallkontakt, erneutes Onboarding, Datenschutzhinweise und App-Version. Alle Nutzerdaten können als lesbares, versioniertes JSON exportiert, nach Vorschau ersetzt oder zusammengeführt und nach doppelter Bestätigung gelöscht werden.
 
 ## Erfolg ohne Produktivitäts-Score
 
@@ -130,6 +136,8 @@ Die App spricht wie ein ruhiger, klarer Mentor: knapp, direkt, nicht verniedlich
 Geeignete Sprache: „Nur der nächste Schritt.“ oder „Du musst es nicht vollständig lösen.“
 
 Ungeeignet sind Beschämung, Heilsversprechen, Diagnosen, übertriebene Motivation oder Aussagen wie „Du hast versagt.“
+
+Auch Aussagen wie „Imagination ist für das Nervensystem identisch mit Realität“ oder „nach 21 Tagen ist die Identität umprogrammiert“ werden nicht als Tatsache dargestellt. Mentales Probehandeln darf den Einstieg vertrauter machen; entscheidend bleiben wiederholte konkrete Handlungen.
 
 ## Bewusst nicht im MVP
 

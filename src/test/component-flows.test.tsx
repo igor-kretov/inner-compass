@@ -67,6 +67,23 @@ function plannedState(overrides: Partial<AppState> = {}) {
   return makeAppState({ plans: [plan], ...overrides });
 }
 
+const TEST_IDENTITY = {
+  statement: "Ich halte meine Standards ruhig und kehre nach Unterbrechungen zurück.",
+  action: "Den kleinsten sichtbaren Schritt beginnen",
+  startedAt: "2026-07-20T18:00:00.000Z",
+  rehearsalDates: [],
+};
+
+function withIdentity(state: AppState = makeAppState()): AppState {
+  return {
+    ...state,
+    settings: {
+      ...state.settings,
+      identity: TEST_IDENTITY,
+    },
+  };
+}
+
 function stateWithTodaysRoutine() {
   const timestamp = "2026-07-20T08:00:00.000Z";
   const date = localDateKey();
@@ -147,11 +164,7 @@ describe("Tagesplanung und Aufgabenabschluss", () => {
       screen.getByRole("textbox", { name: "Nebenaufgabe 1" }),
       "Termin bestätigen",
     );
-    await user.type(
-      screen.getByRole("combobox", { name: /Körper/ }),
-      "Krafttraining",
-    );
-    await user.click(screen.getByRole("radio", { name: "Hoch" }));
+    await user.click(screen.getByRole("radio", { name: "Fitness" }));
     await user.click(screen.getByRole("button", { name: "Tag speichern" }));
 
     const mainTaskHeading = screen.getByRole("heading", {
@@ -164,11 +177,51 @@ describe("Tagesplanung und Aufgabenabschluss", () => {
     expect(
       screen.getByRole("checkbox", { name: /Termin bestätigen/ }),
     ).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: /^Fitness/ })).not.toBeChecked();
 
     await user.click(screen.getByRole("button", { name: "Bearbeiten" }));
     expect(screen.getByRole("textbox", { name: /Hauptaufgabe/ })).toHaveValue(
       "Präsentation abschließen",
     );
+  });
+
+  it("plant morgen im Voraus und lässt den vorbereiteten Plan noch nicht abhaken", async () => {
+    const user = userEvent.setup();
+    await renderWithAppStore(<TodayPage />);
+
+    await user.click(screen.getByRole("button", { name: "Morgen planen" }));
+    expect(screen.getByText(/Planungsmodus/)).toBeInTheDocument();
+    expect(screen.queryByText("Energie")).not.toBeInTheDocument();
+    expect(screen.queryByText("Mentale Unruhe")).not.toBeInTheDocument();
+
+    await user.type(
+      screen.getByRole("textbox", { name: /Hauptaufgabe/ }),
+      "Morgenangebot abschließen",
+    );
+    await user.click(screen.getByRole("button", { name: "Plan für morgen speichern" }));
+
+    expect(screen.getByRole("heading", { name: "Morgenangebot abschließen" })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Hauptaufgabe abschließen" })).toBeDisabled();
+  });
+
+  it("speichert mehr als zwei Nebenaufgaben und merkt sich eine eigene Bewegungsart", async () => {
+    const user = userEvent.setup();
+    await renderWithAppStore(<TodayPage />);
+
+    await user.type(screen.getByRole("textbox", { name: /Hauptaufgabe/ }), "Tageskern");
+    await user.type(screen.getByRole("textbox", { name: "Nebenaufgabe 1" }), "Erste Hilfe");
+    await user.type(screen.getByRole("textbox", { name: "Nebenaufgabe 2" }), "Zweite Hilfe");
+    await user.click(screen.getByRole("button", { name: "Weitere Nebenaufgabe" }));
+    await user.type(screen.getByRole("textbox", { name: "Nebenaufgabe 3" }), "Dritte Hilfe");
+    await user.type(screen.getByRole("textbox", { name: "Eigene Bewegungsart" }), "Schwimmen");
+    await user.click(screen.getByRole("button", { name: "Tag speichern" }));
+
+    expect(screen.getByRole("checkbox", { name: "Erste Hilfe" })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Zweite Hilfe" })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Dritte Hilfe" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Bearbeiten" }));
+    expect(screen.getByRole("radio", { name: "Schwimmen" })).toBeChecked();
   });
 
   it("schließt Haupt- und Nebenaufgaben ohne Gamification ab", async () => {
@@ -377,6 +430,39 @@ describe("Starthelfer und Fokusabschluss", () => {
     expect(within(history as HTMLElement).getByText("Angebot fertigstellen")).toBeInTheDocument();
     expect(within(history as HTMLElement).getByText(/Erreicht/)).toBeInTheDocument();
   });
+
+  it("richtet den Fokusblock an der Identität aus und speichert wertfreie Belege", async () => {
+    navigation.pathname = "/focus";
+    navigation.search = "task=22222222-2222-4222-8222-222222222222";
+    const user = userEvent.setup();
+    await renderWithAppStore(<FocusPage />, withIdentity(plannedState()));
+
+    expect(screen.getByText(
+      `Für diesen Block handelst du so: ${TEST_IDENTITY.statement}`,
+    )).toBeInTheDocument();
+    expect(screen.getByText(
+      "Ausatmen, Schultern lösen, ersten Schritt sehen.",
+    )).toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: "10 Min Einstieg" }));
+    await user.click(screen.getByRole("button", { name: "Fokus beginnen" }));
+    expect(screen.getByText(
+      `Für diesen Block handelst du so: ${TEST_IDENTITY.statement}`,
+    )).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Ich bin abgedriftet" }));
+    expect(screen.getByRole("heading", { name: "Zurückkehren ist die Übung" })).toBeInTheDocument();
+    expect(screen.getByText(/korrigierst den Kurs und kehrst ruhig/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Schließen" }));
+    await user.click(screen.getByRole("button", { name: "Block beenden" }));
+
+    await user.click(screen.getByRole("radio", { name: "Ja" }));
+    expect(screen.getByText(/das gewählte Ergebnis erreicht/)).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: "Teilweise" }));
+    expect(screen.getByText(/einen realen Zwischenstand geschaffen/)).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: "Nein" }));
+    expect(screen.getByText(/kannst den nächsten Schritt neu wählen/)).toBeInTheDocument();
+  });
 });
 
 describe("Reset-Flow", () => {
@@ -437,6 +523,33 @@ describe("Meditationserfassung", () => {
     await user.click(screen.getByRole("button", { name: "Speichern und zurück" }));
 
     expect(navigation.push).toHaveBeenCalledWith("/today");
+  });
+
+  it("bietet mit Identität eine dreiminütige Ausrichtung auf den ersten Schritt an", async () => {
+    navigation.pathname = "/meditation";
+    const user = userEvent.setup();
+    await renderWithAppStore(<MeditationPage />, withIdentity(plannedState()));
+
+    expect(screen.getByRole("radio", { name: "Stille" })).toBeChecked();
+    await user.click(screen.getByRole("radio", { name: /Ausrichtung/ }));
+
+    expect(screen.getByText("3-Minuten-Ausrichtung")).toBeInTheDocument();
+    expect(screen.getByText(/Dokument öffnen/)).toBeInTheDocument();
+    expect(screen.getByText(/Ich halte meine Standards ruhig/)).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "5 Min" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Ausrichtung beginnen" }));
+    expect(screen.getByRole("timer")).toHaveTextContent("03:00");
+    expect(screen.getByText("Ausrichtung")).toBeInTheDocument();
+  });
+
+  it("nutzt ohne Tagesplan die hinterlegte Act-as-if-Handlung", async () => {
+    navigation.pathname = "/meditation";
+    const user = userEvent.setup();
+    await renderWithAppStore(<MeditationPage />, withIdentity());
+
+    await user.click(screen.getByRole("radio", { name: /Ausrichtung/ }));
+    expect(screen.getByText(new RegExp(TEST_IDENTITY.action))).toBeInTheDocument();
   });
 });
 

@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
-  useMemo,
   useState,
   type FormEvent,
   type ReactNode,
 } from "react";
 
+import { IdentityCompass } from "@/components/identity/identity-compass";
 import { RoutinePlanner } from "@/components/planner/routine-planner";
 import { WeekPlanner } from "@/components/planner/week-planner";
 import { Button } from "@/components/ui/button";
@@ -26,12 +26,11 @@ import {
   weekStartKey,
   type DailyPlan,
   type DaySection,
-  type Energy,
-  type MentalState,
   type PlannerItemStatus,
   type RoutineInstance,
   type Task,
 } from "@/lib/app-store";
+import { collectIdentityEvidence } from "@/lib/identity";
 
 const dayPhrases = [
   "Was zählt heute wirklich?",
@@ -92,22 +91,30 @@ function sectionForTime(time: string | undefined, fallback: DaySection): DaySect
 type PlanDraft = {
   mainTask: string;
   nextStep: string;
-  secondaryOne: string;
-  secondaryTwo: string;
+  secondaryTasks: Array<{
+    draftId: string;
+    taskId?: string;
+    title: string;
+  }>;
   bodyActivity: string;
   meditation: string;
   courageousAction: string;
   startTime: string;
-  energy?: Energy;
-  mentalState?: MentalState;
 };
 
 function draftFrom(plan?: DailyPlan, suggestedMain = ""): PlanDraft {
+  const secondaryTasks: PlanDraft["secondaryTasks"] = (plan?.secondaryTasks ?? []).map((task) => ({
+    draftId: task.id,
+    taskId: task.id,
+    title: task.title,
+  }));
+  while (secondaryTasks.length < 2) {
+    secondaryTasks.push({ draftId: `secondary-empty-${secondaryTasks.length + 1}`, title: "" });
+  }
   return {
     mainTask: plan?.mainTask.title ?? suggestedMain,
     nextStep: plan?.nextStep ?? "",
-    secondaryOne: plan?.secondaryTasks[0]?.title ?? "",
-    secondaryTwo: plan?.secondaryTasks[1]?.title ?? "",
+    secondaryTasks,
     bodyActivity: plan?.bodyActivity ?? "",
     meditation: plan?.meditationSkipped
       ? "skip"
@@ -116,8 +123,6 @@ function draftFrom(plan?: DailyPlan, suggestedMain = ""): PlanDraft {
         : "10",
     courageousAction: plan?.courageousAction ?? "",
     startTime: plan?.startTime ?? plan?.mainTask.plannedTime ?? "",
-    energy: plan?.energy,
-    mentalState: plan?.mentalState,
   };
 }
 
@@ -132,9 +137,17 @@ function DailyPlanForm({
   suggestedMain?: string;
   onDone: () => void;
 }) {
-  const { savePlan } = useAppStore();
+  const { savePlan, state } = useAppStore();
   const [draft, setDraft] = useState(() => draftFrom(plan, suggestedMain));
   const [error, setError] = useState("");
+  const today = localDateKey();
+  const tomorrow = shiftLocalDate(today, 1);
+  const isFuturePlan = date > today;
+  const movementOptions = state.settings.movementCategories.map((category) => ({
+    value: category,
+    label: category,
+  }));
+  const identity = state.settings.identity;
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -143,11 +156,12 @@ function DailyPlanForm({
       document.getElementById("main-task")?.focus();
       return;
     }
-    const secondaryTitles = [draft.secondaryOne, draft.secondaryTwo]
-      .map((item) => item.trim())
-      .filter(Boolean);
-    const editedSecondary = secondaryTitles.map((title, index) => {
-      const existing = plan?.secondaryTasks[index];
+    const editedSecondary = draft.secondaryTasks.flatMap((item) => {
+      const title = item.title.trim();
+      if (!title) return [];
+      const existing = item.taskId
+        ? plan?.secondaryTasks.find((task) => task.id === item.taskId)
+        : undefined;
       return {
         ...existing,
         id: existing?.id ?? newId(),
@@ -160,8 +174,8 @@ function DailyPlanForm({
     });
     savePlan({
       date,
-      energy: draft.energy,
-      mentalState: draft.mentalState,
+      energy: plan?.energy,
+      mentalState: plan?.mentalState,
       mainTask: {
         ...plan?.mainTask,
         id: plan?.mainTask.id ?? newId(),
@@ -173,7 +187,7 @@ function DailyPlanForm({
         plannedTime: draft.startTime || undefined,
       },
       nextStep: draft.nextStep.trim(),
-      secondaryTasks: [...editedSecondary, ...(plan?.secondaryTasks.slice(2) ?? [])],
+      secondaryTasks: editedSecondary,
       bodyActivity: draft.bodyActivity.trim() || undefined,
       bodyCompleted: plan?.bodyCompleted ?? false,
       meditationMinutes: draft.meditation === "skip" ? undefined : Number(draft.meditation),
@@ -197,35 +211,17 @@ function DailyPlanForm({
     <form onSubmit={submit} className="grid gap-5" noValidate>
       <Card className="grid gap-6">
         <div>
-          <p className="eyebrow">Tageskern</p>
+          <p className="eyebrow">{isFuturePlan ? "Im Voraus planen" : "Tageskern"}</p>
           <h2 className="mt-1 text-2xl font-semibold tracking-[-0.03em]">
-            {plan ? "Den Tag nachjustieren" : "Was soll heute wirklich zählen?"}
+            {plan
+              ? date === tomorrow ? "Den Plan für morgen nachjustieren" : "Den Tag nachjustieren"
+              : date === tomorrow ? "Was soll morgen wirklich zählen?" : "Was soll heute wirklich zählen?"}
           </h2>
-        </div>
-        <div>
-          <p className="eyebrow">Zustand · optional</p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <ChoiceChips
-              label="Energie"
-              value={draft.energy}
-              options={[
-                { value: "low", label: "Niedrig" },
-                { value: "medium", label: "Mittel" },
-                { value: "high", label: "Hoch" },
-              ]}
-              onChange={(value) => setDraft({ ...draft, energy: value as Energy })}
-            />
-            <ChoiceChips
-              label="Mentale Unruhe"
-              value={draft.mentalState}
-              options={[
-                { value: "calm", label: "Ruhig" },
-                { value: "moving", label: "Bewegt" },
-                { value: "overloaded", label: "Überladen" },
-              ]}
-              onChange={(value) => setDraft({ ...draft, mentalState: value as MentalState })}
-            />
-          </div>
+          {isFuturePlan && (
+            <p className="mt-2 text-sm text-[var(--text-muted)]">
+              Heute in Ruhe entscheiden. Morgen direkt mit einem klaren Plan starten.
+            </p>
+          )}
         </div>
 
         <Field
@@ -260,6 +256,15 @@ function DailyPlanForm({
           />
         </Field>
 
+        {identity && draft.mainTask.trim() && (
+          <aside className="rounded-2xl border border-[var(--accent-border)] bg-[var(--accent-soft)] px-4 py-4 text-sm leading-6">
+            <p className="font-medium">{date === tomorrow ? "Morgen übst du" : "Heute übst du"}: {identity.statement}</p>
+            <p className="mt-1 text-[var(--text-muted)]">
+              Sichtbar durch: {draft.nextStep.trim() || draft.mainTask.trim()}
+            </p>
+          </aside>
+        )}
+
         <Field label="Startzeit" htmlFor="start-time" optional hint="Nur ein weicher Anker, kein Alarm.">
           <TextInput
             id="start-time"
@@ -275,39 +280,75 @@ function DailyPlanForm({
           <p className="eyebrow">Unterstützend</p>
           <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em]">Nicht mehr als nötig</h2>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Nebenaufgabe 1" htmlFor="secondary-one" optional>
-            <TextInput
-              id="secondary-one"
-              value={draft.secondaryOne}
-              onChange={(event) => setDraft({ ...draft, secondaryOne: event.target.value })}
-              maxLength={140}
-            />
-          </Field>
-          <Field label="Nebenaufgabe 2" htmlFor="secondary-two" optional>
-            <TextInput
-              id="secondary-two"
-              value={draft.secondaryTwo}
-              onChange={(event) => setDraft({ ...draft, secondaryTwo: event.target.value })}
-              maxLength={140}
-            />
-          </Field>
+        <div className="grid gap-4">
+          {draft.secondaryTasks.map((task, index) => (
+            <div key={task.draftId} className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+              <Field label={`Nebenaufgabe ${index + 1}`} htmlFor={`secondary-${task.draftId}`} optional>
+                <TextInput
+                  id={`secondary-${task.draftId}`}
+                  value={task.title}
+                  onChange={(event) => setDraft({
+                    ...draft,
+                    secondaryTasks: draft.secondaryTasks.map((item) =>
+                      item.draftId === task.draftId ? { ...item, title: event.target.value } : item,
+                    ),
+                  })}
+                  maxLength={140}
+                />
+              </Field>
+              {draft.secondaryTasks.length > 2 && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setDraft({
+                    ...draft,
+                    secondaryTasks: draft.secondaryTasks.filter((item) => item.draftId !== task.draftId),
+                  })}
+                  aria-label={`Nebenaufgabe ${index + 1} entfernen`}
+                >
+                  Entfernen
+                </Button>
+              )}
+            </div>
+          ))}
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="justify-self-start"
+            disabled={draft.secondaryTasks.length >= 30}
+            onClick={() => setDraft({
+              ...draft,
+              secondaryTasks: [
+                ...draft.secondaryTasks,
+                { draftId: `secondary-${newId()}`, title: "" },
+              ],
+            })}
+          >
+            Weitere Nebenaufgabe
+          </Button>
         </div>
-        <Field label="Körper" htmlFor="body-activity" hint="Training, Spaziergang oder bewusste Erholung." optional>
+        <ChoiceChips
+          label="Bewegung auswählen"
+          value={state.settings.movementCategories.includes(draft.bodyActivity) ? draft.bodyActivity : null}
+          options={movementOptions}
+          onChange={(value) => setDraft({ ...draft, bodyActivity: value })}
+        />
+        <Field
+          label="Eigene Bewegungsart"
+          htmlFor="body-activity"
+          hint="Zum Beispiel Muay Thai. Nach dem Speichern steht sie künftig direkt zur Auswahl."
+          optional
+        >
           <TextInput
             id="body-activity"
-            list="body-options"
             value={draft.bodyActivity}
             onChange={(event) => setDraft({ ...draft, bodyActivity: event.target.value })}
             maxLength={100}
-            placeholder="Bewegung wählen oder eingeben"
+            placeholder="Neue Bewegungsart eintragen"
           />
         </Field>
-        <datalist id="body-options">
-          {["Krafttraining", "Kampfsport", "Laufen", "Spaziergang", "Mobility", "Erholung"].map((item) => (
-            <option key={item} value={item} />
-          ))}
-        </datalist>
         <ChoiceChips
           label="Meditation"
           value={draft.meditation}
@@ -336,7 +377,9 @@ function DailyPlanForm({
 
       <div className="flex gap-3">
         {plan && <Button type="button" variant="ghost" onClick={onDone}>Abbrechen</Button>}
-        <Button type="submit" className="ml-auto">Tag speichern</Button>
+        <Button type="submit" className="ml-auto">
+          {date === tomorrow ? "Plan für morgen speichern" : "Tag speichern"}
+        </Button>
       </div>
     </form>
   );
@@ -356,7 +399,9 @@ function CheckRow({
   onChange: () => void;
 }) {
   return (
-    <label className="group flex min-h-14 cursor-pointer items-start gap-4 border-b border-[var(--border)] py-4 last:border-0">
+    <label className={disabled
+      ? "group flex min-h-14 cursor-default items-start gap-4 border-b border-[var(--border)] py-4 opacity-70 last:border-0"
+      : "group flex min-h-14 cursor-pointer items-start gap-4 border-b border-[var(--border)] py-4 last:border-0"}>
       <input
         type="checkbox"
         checked={checked}
@@ -372,7 +417,7 @@ function CheckRow({
   );
 }
 
-function RoutineCard({ instance }: { instance: RoutineInstance }) {
+function RoutineCard({ instance, disabled = false }: { instance: RoutineInstance; disabled?: boolean }) {
   const { toggleRoutineStep, setRoutineSkipped } = useAppStore();
   const completed = instance.steps.filter((step) => step.completed).length;
   const skipped = instance.status === "skipped";
@@ -391,6 +436,7 @@ function RoutineCard({ instance }: { instance: RoutineInstance }) {
         <Button
           size="sm"
           variant="ghost"
+          disabled={disabled}
           onClick={() => setRoutineSkipped(instance.id, !skipped)}
         >
           {skipped ? "Wieder aufnehmen" : "Heute auslassen"}
@@ -402,7 +448,7 @@ function RoutineCard({ instance }: { instance: RoutineInstance }) {
             <input
               type="checkbox"
               checked={step.completed}
-              disabled={skipped}
+              disabled={skipped || disabled}
               aria-label={`${step.title} in ${instance.title}`}
               onChange={() => toggleRoutineStep(instance.id, step.id)}
               className="size-6 shrink-0 accent-[var(--accent)] disabled:opacity-45"
@@ -419,10 +465,12 @@ function RoutineCard({ instance }: { instance: RoutineInstance }) {
 
 function TaskRow({
   task,
+  disabled = false,
   onToggle,
   onOptions,
 }: {
   task: Task;
+  disabled?: boolean;
   onToggle: () => void;
   onOptions: () => void;
 }) {
@@ -438,7 +486,7 @@ function TaskRow({
       <input
         type="checkbox"
         checked={status === "completed"}
-        disabled={inactive}
+        disabled={inactive || disabled}
         aria-label={task.title}
         onChange={onToggle}
         className="mt-1 size-6 shrink-0 accent-[var(--accent)] disabled:opacity-45"
@@ -453,7 +501,7 @@ function TaskRow({
           </p>
         )}
       </div>
-      <Button size="icon" variant="ghost" aria-label={`Optionen für ${task.title}`} onClick={onOptions}>
+      <Button size="icon" variant="ghost" disabled={disabled} aria-label={`Optionen für ${task.title}`} onClick={onOptions}>
         <span aria-hidden="true" className="text-xl leading-none">•••</span>
       </Button>
     </div>
@@ -465,6 +513,7 @@ function AgendaSection({
   routines,
   tasks,
   anchors,
+  disabled = false,
   hideWhenEmpty = false,
   onToggleTask,
   onTaskOptions,
@@ -473,6 +522,7 @@ function AgendaSection({
   routines: RoutineInstance[];
   tasks: Task[];
   anchors: ReactNode[];
+  disabled?: boolean;
   hideWhenEmpty?: boolean;
   onToggleTask: (task: Task) => void;
   onTaskOptions: (task: Task) => void;
@@ -493,13 +543,14 @@ function AgendaSection({
           <p className="px-5 py-6 text-sm text-[var(--text-muted)]">{labels.empty}</p>
         ) : (
           <div className="grid gap-3 p-4 sm:p-5">
-            {routines.map((routine) => <RoutineCard key={routine.id} instance={routine} />)}
+            {routines.map((routine) => <RoutineCard key={routine.id} instance={routine} disabled={disabled} />)}
             {(tasks.length > 0 || anchors.length > 0) && (
               <div className="px-1">
                 {tasks.map((task) => (
                   <TaskRow
                     key={task.id}
                     task={task}
+                    disabled={disabled}
                     onToggle={() => onToggleTask(task)}
                     onOptions={() => onTaskOptions(task)}
                   />
@@ -579,17 +630,27 @@ function QuickTaskForm({ date }: { date: string }) {
 }
 
 function DailyReflection({ plan, date }: { plan: DailyPlan; date: string }) {
-  const { updatePlanForDate } = useAppStore();
+  const { state, updatePlanForDate } = useAppStore();
   const [open, setOpen] = useState(false);
   const [important, setImportant] = useState(plan.reflection?.important ?? "");
   const [leaveBehind, setLeaveBehind] = useState(plan.reflection?.leaveBehind ?? "");
   const [note, setNote] = useState(plan.reflection?.note ?? "");
+  const [identityEvidence, setIdentityEvidence] = useState(plan.reflection?.identityEvidence ?? "");
+  const automaticEvidence = collectIdentityEvidence(state)
+    .filter((evidence) => evidence.date === date && evidence.type !== "reflection")
+    .slice(0, 3);
 
   const save = (event: FormEvent) => {
     event.preventDefault();
     updatePlanForDate(date, (current) => ({
       ...current,
-      reflection: { important, leaveBehind, note, completedAt: new Date().toISOString() },
+      reflection: {
+        important,
+        leaveBehind,
+        note,
+        identityEvidence,
+        completedAt: new Date().toISOString(),
+      },
     }));
     setOpen(false);
   };
@@ -610,12 +671,30 @@ function DailyReflection({ plan, date }: { plan: DailyPlan; date: string }) {
       </button>
       {open && (
         <form className="mt-6 grid gap-5 border-t border-[var(--border)] pt-6" onSubmit={save}>
-          <Field label="Was wurde tatsächlich wichtig?" htmlFor="reflection-important">
+          {state.settings.identity && (
+            <div className="rounded-2xl border border-[var(--accent-border)] bg-[var(--accent-soft)] p-4">
+              <p className="eyebrow">Bereits erkannt</p>
+              <h3 className="mt-1 font-semibold">Was du heute konkret bewiesen hast</h3>
+              {automaticEvidence.length > 0 ? (
+                <ul className="mt-3 grid gap-2 text-sm text-[var(--text-muted)]">
+                  {automaticEvidence.map((evidence) => <li key={evidence.id}>• {evidence.label}</li>)}
+                </ul>
+              ) : (
+                <p className="mt-2 text-sm text-[var(--text-muted)]">Noch kein Häkchen nötig. Auch ruhiges Zurückkehren darf heute der Beweis sein.</p>
+              )}
+            </div>
+          )}
+          <Field label={state.settings.identity ? "Welcher Moment zeigte heute, wie du handeln willst?" : "Was wurde tatsächlich wichtig?"} htmlFor="reflection-important">
             <TextArea id="reflection-important" rows={2} value={important} onChange={(event) => setImportant(event.target.value)} maxLength={300} />
           </Field>
-          <Field label="Was nehme ich nicht mit in den Abend?" htmlFor="reflection-leave">
+          <Field label={state.settings.identity ? "Welche alte Geschichte lässt du heute hier?" : "Was nehme ich nicht mit in den Abend?"} htmlFor="reflection-leave">
             <TextArea id="reflection-leave" rows={2} value={leaveBehind} onChange={(event) => setLeaveBehind(event.target.value)} maxLength={300} />
           </Field>
+          {state.settings.identity && (
+            <Field label="Ein zusätzlicher persönlicher Beweis" htmlFor="reflection-identity-evidence" optional hint="Nur wenn etwas Wichtiges nicht automatisch erkannt wurde.">
+              <TextArea id="reflection-identity-evidence" rows={2} value={identityEvidence} onChange={(event) => setIdentityEvidence(event.target.value)} maxLength={300} />
+            </Field>
+          )}
           <Field label="Kurze Notiz" htmlFor="reflection-note" optional>
             <TextArea id="reflection-note" rows={2} value={note} onChange={(event) => setNote(event.target.value)} maxLength={400} />
           </Field>
@@ -637,14 +716,17 @@ export default function TodayPage() {
   } = useAppStore();
   const router = useRouter();
   const [view, setView] = useState<"day" | "routines" | "week">("day");
-  const [selectedDate, setSelectedDate] = useState(localDateKey());
+  const [now, setNow] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState(() => localDateKey());
   const [editing, setEditing] = useState(false);
   const [carriedTask, setCarriedTask] = useState("");
   const [taskWithOptions, setTaskWithOptions] = useState<Task>();
-  const now = useMemo(() => new Date(), []);
   const today = localDateKey(now);
+  const tomorrow = shiftLocalDate(today, 1);
+  const selectedDateIsFuture = selectedDate > today;
   const selectedDateObject = new Date(`${selectedDate}T12:00:00`);
   const selectedPlan = state.plans.find((plan) => plan.date === selectedDate);
+  const tomorrowPlan = state.plans.find((plan) => plan.date === tomorrow);
   const selectedRoutines = state.routineInstances.filter((instance) => instance.date === selectedDate);
   const weekKey = weekStartKey(selectedDate);
   const weekPlan = state.weekPlans.find((plan) => plan.weekKey === weekKey);
@@ -663,6 +745,31 @@ export default function TodayPage() {
   useEffect(() => {
     if (ready) ensureRoutineInstances(selectedDate);
   }, [ensureRoutineInstances, ready, selectedDate, state.routines]);
+
+  useEffect(() => {
+    const refreshLocalDay = () => {
+      const refreshed = new Date();
+      const refreshedDay = localDateKey(refreshed);
+      setNow((previous) => {
+        const previousDay = localDateKey(previous);
+        if (previousDay !== refreshedDay) {
+          setSelectedDate((current) => current === previousDay ? refreshedDay : current);
+        }
+        return refreshed;
+      });
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") refreshLocalDay();
+    };
+    const interval = window.setInterval(refreshLocalDay, 60_000);
+    window.addEventListener("focus", refreshLocalDay);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshLocalDay);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
 
   const taskItems = selectedPlan
     ? [selectedPlan.mainTask, ...selectedPlan.secondaryTasks].filter((task) =>
@@ -688,6 +795,7 @@ export default function TodayPage() {
   const progressPercent = progressTotal ? Math.round((progressDone / progressTotal) * 100) : 0;
 
   const toggleTask = (task: Task) => {
+    if (selectedDateIsFuture) return;
     const nextStatus: PlannerItemStatus = resolvedTaskStatus(task) === "completed" ? "open" : "completed";
     setTaskStatus(selectedDate, task.id, nextStatus);
   };
@@ -702,7 +810,15 @@ export default function TodayPage() {
           checked={selectedPlan.bodyCompleted}
           label={selectedPlan.bodyActivity}
           detail={`Körper${state.settings.trainingTime ? ` · ${state.settings.trainingTime}` : ""}`}
-          onChange={() => updatePlanForDate(selectedDate, (plan) => ({ ...plan, bodyCompleted: !plan.bodyCompleted }))}
+          disabled={selectedDateIsFuture}
+          onChange={() => updatePlanForDate(selectedDate, (plan) => {
+            const completed = !plan.bodyCompleted;
+            return {
+              ...plan,
+              bodyCompleted: completed,
+              bodyCompletedAt: completed ? new Date().toISOString() : undefined,
+            };
+          })}
         />,
       );
     }
@@ -717,7 +833,15 @@ export default function TodayPage() {
           checked={selectedPlan.meditationCompleted}
           label={`${selectedPlan.meditationMinutes} Minuten Meditation`}
           detail={`Präsenz${state.settings.meditationTime ? ` · ${state.settings.meditationTime}` : ""}`}
-          onChange={() => updatePlanForDate(selectedDate, (plan) => ({ ...plan, meditationCompleted: !plan.meditationCompleted }))}
+          disabled={selectedDateIsFuture}
+          onChange={() => updatePlanForDate(selectedDate, (plan) => {
+            const completed = !plan.meditationCompleted;
+            return {
+              ...plan,
+              meditationCompleted: completed,
+              meditationCompletedAt: completed ? new Date().toISOString() : undefined,
+            };
+          })}
         />,
       );
     }
@@ -728,7 +852,15 @@ export default function TodayPage() {
           checked={selectedPlan.courageousCompleted}
           label={selectedPlan.courageousAction}
           detail="Mutige Handlung"
-          onChange={() => updatePlanForDate(selectedDate, (plan) => ({ ...plan, courageousCompleted: !plan.courageousCompleted }))}
+          disabled={selectedDateIsFuture}
+          onChange={() => updatePlanForDate(selectedDate, (plan) => {
+            const completed = !plan.courageousCompleted;
+            return {
+              ...plan,
+              courageousCompleted: completed,
+              courageousCompletedAt: completed ? new Date().toISOString() : undefined,
+            };
+          })}
         />,
       );
     }
@@ -759,6 +891,7 @@ export default function TodayPage() {
         .filter((task) => (task.section ?? "day") === section)
         .sort((left, right) => (left.plannedTime ?? "99:99").localeCompare(right.plannedTime ?? "99:99"))}
       anchors={anchorsFor(section)}
+      disabled={selectedDateIsFuture}
       hideWhenEmpty={!selectedPlan}
       onToggleTask={toggleTask}
       onTaskOptions={setTaskWithOptions}
@@ -869,6 +1002,44 @@ export default function TodayPage() {
             </aside>
           )}
 
+          {selectedDate === today && (
+            <Card variant="muted" className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+              <div className="min-w-0">
+                <p className="eyebrow">Am Vorabend</p>
+                <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em]">
+                  {tomorrowPlan ? "Morgen ist vorbereitet." : "Plane morgen, bevor der Tag beginnt."}
+                </h2>
+                <p className="mt-2 text-sm text-[var(--text-muted)]">
+                  {tomorrowPlan
+                    ? tomorrowPlan.mainTask.title
+                    : "Dann steht beim Aufstehen sofort fest, was zuerst zählt."}
+                </p>
+              </div>
+              <Button
+                variant={tomorrowPlan ? "secondary" : "primary"}
+                onClick={() => chooseDate(tomorrow)}
+              >
+                {tomorrowPlan ? "Morgen ansehen" : "Morgen planen"}
+              </Button>
+            </Card>
+          )}
+
+          {selectedDate === today && (
+            <IdentityCompass
+              variant="compact"
+              actionLabel={selectedPlan?.nextStep || selectedPlan?.mainTask.title}
+            />
+          )}
+
+          {selectedDateIsFuture && (
+            <aside className="flex items-start gap-3 rounded-2xl border border-[var(--accent-border)] bg-[var(--accent-soft)] px-4 py-3 text-sm">
+              <span className="mt-1 size-2 shrink-0 rounded-full bg-[var(--accent)]" />
+              <div>
+                <span className="font-medium">Planungsmodus:</span> Häkchen und Tagesabschluss werden erst an diesem Tag aktiv.
+              </div>
+            </aside>
+          )}
+
           <Card variant="accent" aria-live="polite">
             <div className="flex items-end justify-between gap-4">
               <div>
@@ -942,7 +1113,7 @@ export default function TodayPage() {
                   <input
                     type="checkbox"
                     checked={resolvedTaskStatus(selectedPlan.mainTask) === "completed"}
-                    disabled={["skipped", "deferred"].includes(resolvedTaskStatus(selectedPlan.mainTask))}
+                    disabled={selectedDateIsFuture || ["skipped", "deferred"].includes(resolvedTaskStatus(selectedPlan.mainTask))}
                     aria-label="Hauptaufgabe abschließen"
                     onChange={() => toggleTask(selectedPlan.mainTask)}
                     className="mt-1 size-7 shrink-0 accent-[var(--accent)] disabled:opacity-45"
@@ -969,6 +1140,7 @@ export default function TodayPage() {
                   <Button
                     size="icon"
                     variant="ghost"
+                    disabled={selectedDateIsFuture}
                     aria-label={`Optionen für ${selectedPlan.mainTask.title}`}
                     onClick={() => setTaskWithOptions(selectedPlan.mainTask)}
                   >
@@ -1011,7 +1183,13 @@ export default function TodayPage() {
             </div>
           )}
 
-          {selectedPlan && !editing && <DailyReflection plan={selectedPlan} date={selectedDate} />}
+          {selectedPlan && !editing && !selectedDateIsFuture && (
+            <DailyReflection
+              key={`${selectedPlan.id}:${selectedDate}`}
+              plan={selectedPlan}
+              date={selectedDate}
+            />
+          )}
         </>
       )}
 

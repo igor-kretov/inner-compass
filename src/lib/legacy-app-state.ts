@@ -202,6 +202,11 @@ export function legacyAppStateToDataStore(source: unknown): DataStore {
   const parsed = LegacyAppStateSchema.parse(source);
   return appStateToDataStore({
     ...parsed,
+    settings: {
+      ...parsed.settings,
+      movementCategories: ["Muay Thai", "Fitness", "Spaziergang", "Laufen", "Mobility", "Erholung"],
+      identity: undefined,
+    },
     // Planner collections were added after the legacy aggregate format. They
     // start empty while every pre-existing plan and task is preserved.
     routines: [],

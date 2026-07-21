@@ -7,23 +7,18 @@ async function finishOnboarding(page: Page) {
   await expect(page.getByRole("heading", { name: "Dein Tagesrhythmus" })).toBeVisible();
   await page.getByRole("button", { name: "Weiter" }).click();
 
-  await expect(page.getByRole("heading", { name: /Wie lange möchtest du/ })).toBeVisible();
-  await page.getByRole("radio", { name: "25 Minuten" }).check();
-  await page.getByRole("button", { name: "Weiter" }).click();
-
-  await expect(page.getByRole("heading", { name: "Was soll dich ausrichten?" })).toBeVisible();
-  await page.getByRole("button", { name: "Körper" }).click();
-  await page.getByRole("button", { name: "Arbeit" }).click();
+  await expect(page.getByRole("heading", { name: /Wie willst du handeln/ })).toBeVisible();
+  await page.getByRole("radio", { name: "Ich kehre ruhig zurück, wenn ich abdrifte." }).check();
   await page.getByRole("button", { name: "Weiter" }).click();
 
   await expect(page.getByRole("heading", { name: "Privat, lokal, ohne Konto." })).toBeVisible();
   await page.getByRole("button", { name: "Heute klären" }).click();
-  await expect(page).toHaveURL(/\/today$/);
+  await expect(page).toHaveURL(/\/today\/?$/);
 }
 
 async function onboardFreshUser(page: Page) {
   await page.goto("/");
-  await expect(page).toHaveURL(/\/onboarding$/);
+  await expect(page).toHaveURL(/\/onboarding\/?$/);
   await finishOnboarding(page);
 }
 
@@ -31,10 +26,10 @@ async function createDailyPlan(
   page: Page,
   mainTask = "Kundenangebot fertigstellen",
 ) {
-  await page.getByLabel("Hauptaufgabe").fill(mainTask);
-  await page.getByLabel("Nächster konkreter Schritt").fill("Dokument öffnen");
+  await page.getByRole("textbox", { name: "Hauptaufgabe", exact: true }).fill(mainTask);
+  await page.getByRole("textbox", { name: "Nächster konkreter Schritt", exact: true }).fill("Dokument öffnen");
   await page.getByLabel("Nebenaufgabe 1").fill("Rückruf erledigen");
-  await page.getByLabel("Körper").fill("Spaziergang");
+  await page.getByRole("radio", { name: "Spaziergang" }).check();
   await page.getByRole("button", { name: "Tag speichern" }).click();
   await expect(page.getByRole("heading", { name: mainTask })).toBeVisible();
 }
@@ -62,12 +57,67 @@ function fullDateLabel(key: string) {
 }
 
 test.describe("kritische iPhone-Flows", () => {
+  test("Onboarding-Zeitfelder bleiben auf schmalen iPhones innerhalb der Karte", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto("/");
+    await page.getByRole("button", { name: "Weiter" }).click();
+
+    const rhythmCard = page.getByRole("group", {
+      name: "Zeitfenster für deinen Tagesrhythmus",
+    });
+    await expect(rhythmCard).toBeVisible();
+    const geometry = await rhythmCard.evaluate((card) => {
+      const cardRect = card.getBoundingClientRect();
+      const controls = [...card.querySelectorAll("input, select")].map((control) => {
+        const rect = control.getBoundingClientRect();
+        return { left: rect.left, right: rect.right };
+      });
+      return {
+        viewportWidth: document.documentElement.clientWidth,
+        documentWidth: document.documentElement.scrollWidth,
+        cardLeft: cardRect.left,
+        cardRight: cardRect.right,
+        controls,
+      };
+    });
+
+    expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewportWidth + 1);
+    for (const control of geometry.controls) {
+      expect(control.left).toBeGreaterThanOrEqual(geometry.cardLeft - 1);
+      expect(control.right).toBeLessThanOrEqual(geometry.cardRight + 1);
+    }
+  });
+
   test("A – erster Start, Onboarding und Tagesplanung", async ({ page }) => {
     await onboardFreshUser(page);
     await createDailyPlan(page, "Präsentation finalisieren");
 
-    await expect(page.getByText("Dokument öffnen")).toBeVisible();
+    await expect(page.getByText(/^Nächster Schritt: Dokument öffnen$/)).toBeVisible();
     await expect(page.getByRole("checkbox", { name: "Hauptaufgabe abschließen" })).not.toBeChecked();
+  });
+
+  test("A2 – morgen vorbereiten, Zusatzaufgaben erweitern und Bewegung merken", async ({ page }) => {
+    await onboardFreshUser(page);
+    await page.getByRole("button", { name: "Morgen planen" }).click();
+    await expect(page.getByText(/Planungsmodus/)).toBeVisible();
+
+    await page.getByLabel("Hauptaufgabe").fill("Morgen klar beginnen");
+    await page.getByLabel("Nebenaufgabe 1").fill("Erster Nebenpunkt");
+    await page.getByLabel("Nebenaufgabe 2").fill("Zweiter Nebenpunkt");
+    await page.getByRole("button", { name: "Weitere Nebenaufgabe" }).click();
+    await page
+      .getByRole("textbox", { name: "Nebenaufgabe 3", exact: true })
+      .fill("Dritter Nebenpunkt");
+    await page.getByLabel("Eigene Bewegungsart").fill("Schwimmen");
+    await page.getByRole("button", { name: "Plan für morgen speichern" }).click();
+
+    await expect(page.getByRole("heading", { name: "Morgen klar beginnen" })).toBeVisible();
+    await expect(page.getByRole("checkbox", { name: "Hauptaufgabe abschließen" })).toBeDisabled();
+    await page.reload();
+    await expect(page.getByText("Morgen ist vorbereitet.")).toBeVisible();
+    await page.getByRole("button", { name: "Morgen ansehen" }).click();
+    await page.getByRole("button", { name: "Bearbeiten" }).click();
+    await expect(page.getByRole("radio", { name: "Schwimmen" })).toBeChecked();
   });
 
   test("B – Hauptaufgabe in einem kontrolliert beendeten Fokusblock abschließen", async ({ page }) => {
@@ -75,7 +125,7 @@ test.describe("kritische iPhone-Flows", () => {
     await createDailyPlan(page);
 
     await page.getByRole("button", { name: "Jetzt beginnen" }).click();
-    await expect(page).toHaveURL(/\/focus\?task=/);
+    await expect(page).toHaveURL(/\/focus\/?\?task=/);
     await expect(page.getByLabel("Was soll am Ende dieses Blocks sichtbar fertig sein?")).toHaveValue(
       "Dokument öffnen",
     );
@@ -99,7 +149,7 @@ test.describe("kritische iPhone-Flows", () => {
   test("C – Reset ohne nötige Handlung bis zur gespeicherten Rückkehr", async ({ page }) => {
     await onboardFreshUser(page);
     await page.getByRole("link", { name: "Reset", exact: true }).click();
-    await expect(page).toHaveURL(/\/reset$/);
+    await expect(page).toHaveURL(/\/reset\/?$/);
 
     await page.getByRole("button", { name: "Reset beginnen" }).click();
     await page.getByLabel("Kurz benennen").fill("Ich denke dieselbe Situation immer wieder durch");
@@ -125,7 +175,7 @@ test.describe("kritische iPhone-Flows", () => {
   test("D – Wochenreview mit übersprungenen Fragen und gespeicherter Wochenkarte", async ({ page }) => {
     await onboardFreshUser(page);
     await page.getByRole("link", { name: "Reflexion", exact: true }).click();
-    await expect(page).toHaveURL(/\/reflection$/);
+    await expect(page).toHaveURL(/\/reflection\/?$/);
     await page.getByRole("button", { name: "Wochenreview beginnen" }).click();
 
     await page.getByLabel(/Deine Beobachtung/).fill("Ich habe die wichtigste Aufgabe begonnen.");
@@ -164,7 +214,7 @@ test.describe("kritische iPhone-Flows", () => {
     await expect(deleteDialog.getByRole("button", { name: "Endgültig löschen" })).toBeDisabled();
     await deleteDialog.getByLabel("Bestätigung").fill("LÖSCHEN");
     await deleteDialog.getByRole("button", { name: "Endgültig löschen" }).click();
-    await expect(page).toHaveURL(/\/onboarding$/);
+    await expect(page).toHaveURL(/\/onboarding\/?$/);
 
     await finishOnboarding(page);
     await page.getByRole("link", { name: "Einstellungen", exact: true }).click();
@@ -245,5 +295,40 @@ test.describe("kritische iPhone-Flows", () => {
     await weeklyItem.locator("..").getByRole("button", { name: "Tag öffnen" }).click();
     await expect(page.getByRole("button", { name: "Tag", exact: true })).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("heading", { name: "Team-Freigabe einholen" })).toBeVisible();
+  });
+
+  test("H – Identität mit Tageshandlung, mentaler Probe und Belegen verbinden", async ({ page }) => {
+    await onboardFreshUser(page);
+    const identity = "Ich kehre ruhig zurück, wenn ich abdrifte.";
+
+    await expect(page.getByRole("heading", { name: identity })).toBeVisible();
+    await page.getByRole("button", { name: "20-Sekunden-Probe" }).click();
+    const rehearsal = page.getByRole("dialog", { name: "20-Sekunden-Probe" });
+    await expect(rehearsal.getByText("Atme länger aus.")).toBeVisible();
+    await expect(rehearsal.getByRole("timer")).toHaveAccessibleName("20 Sekunden verbleibend");
+    await rehearsal.getByRole("button", { name: "Für heute schließen" }).click();
+
+    await createDailyPlan(page, "Klar beginnen");
+    await page.getByRole("checkbox", { name: "Hauptaufgabe abschließen" }).check();
+    await expect(page.getByText("Aufgabe erledigt: Klar beginnen")).toBeVisible();
+
+    await page.getByRole("button", { name: "Morgen planen" }).click();
+    await expect(page.getByText(/Planungsmodus/)).toBeVisible();
+    await page.getByRole("textbox", { name: "Hauptaufgabe", exact: true }).fill("Ruhig am Angebot beginnen");
+    await page.getByRole("textbox", { name: "Nächster konkreter Schritt", exact: true }).fill("Dokument öffnen");
+    await expect(page.getByText(`Morgen übst du: ${identity}`)).toBeVisible();
+    await page.getByRole("button", { name: "Plan für morgen speichern" }).click();
+    await page.getByRole("button", { name: "Zurück zu heute" }).click();
+    await expect(page.getByRole("heading", { name: "Klar beginnen" })).toBeVisible();
+
+    await page.getByRole("link", { name: "Reflexion", exact: true }).click();
+    await page.getByRole("button", { name: "Identität" }).click();
+    await expect(page.getByRole("heading", { name: "Letzte Belege" })).toBeVisible();
+    await expect(page.getByText("Aufgabe erledigt: Klar beginnen").last()).toBeVisible();
+
+    await page.getByRole("link", { name: "In der Meditation ausrichten" }).click();
+    await page.getByRole("radio", { name: /Ausrichtung/ }).check();
+    await expect(page.getByText("3-Minuten-Ausrichtung")).toBeVisible();
+    await expect(page.getByText(/Dokument öffnen/)).toBeVisible();
   });
 });

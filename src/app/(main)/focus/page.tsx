@@ -102,13 +102,20 @@ function ActiveFocus({ session }: { session: FocusSession }) {
           <Button variant="ghost" onClick={openDrift}>Ich bin abgedriftet</Button>
         </div>
       </div>
-      <footer className="mx-auto w-full max-w-3xl text-center text-xs text-[var(--text-muted)]">Nur dieser Block. Nur der nächste Schritt.</footer>
+      <footer className="mx-auto w-full max-w-3xl text-center text-xs text-[var(--text-muted)]">
+        {state.settings.identity?.statement
+          ? `Für diesen Block handelst du so: ${state.settings.identity.statement}`
+          : "Nur dieser Block. Nur der nächste Schritt."}
+      </footer>
 
       {driftOpen && (
         <div className="fixed inset-0 z-[110] grid place-items-end bg-black/40 p-3 sm:place-items-center" role="dialog" aria-modal="true" aria-labelledby="drift-title">
           <Card className="w-full max-w-lg shadow-2xl">
             <p className="eyebrow">Zurückkehren</p>
-            <h2 id="drift-title" className="mt-2 text-2xl font-semibold">Was ist der allerkleinste nächste Schritt?</h2>
+            <h2 id="drift-title" className="mt-2 text-2xl font-semibold">Zurückkehren ist die Übung</h2>
+            <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+              Ablenkung ist kein Scheitern. Du bemerkst sie, korrigierst den Kurs und kehrst ruhig zum nächsten Schritt zurück.
+            </p>
             <Field className="mt-6" label="Ein kurzer Satz" htmlFor="drift-step">
               <TextInput id="drift-step" autoFocus value={driftStep} onChange={(event) => setDriftStep(event.target.value)} maxLength={160} placeholder="Zum Beispiel: die erste Zeile lesen" />
             </Field>
@@ -128,12 +135,20 @@ function ActiveFocus({ session }: { session: FocusSession }) {
 }
 
 function FocusReview({ session }: { session: FocusSession }) {
-  const { completeFocus } = useAppStore();
+  const { state, completeFocus } = useAppStore();
   const [result, setResult] = useState<FocusSession["result"]>();
   const [nextStep, setNextStep] = useState("");
   const [bodyCheck, setBodyCheck] = useState("");
   const [error, setError] = useState("");
   const needsBodyCheck = session.durationMinutes >= 50;
+  const identity = state.settings.identity;
+  const evidence = result === "yes"
+    ? "Du hast begonnen und das gewählte Ergebnis erreicht."
+    : result === "partly"
+      ? "Du hast begonnen und einen realen Zwischenstand geschaffen."
+      : result === "no"
+        ? "Du hast begonnen, überprüft und kannst den nächsten Schritt neu wählen."
+        : undefined;
 
   const save = (event: FormEvent) => {
     event.preventDefault();
@@ -167,6 +182,15 @@ function FocusReview({ session }: { session: FocusSession }) {
             ]}
             onChange={(value) => { setResult(value as FocusSession["result"]); setError(""); }}
           />
+          {identity && evidence && (
+            <div
+              className="rounded-2xl border border-[var(--accent-border)] bg-[var(--accent-soft)] px-4 py-3 text-sm leading-6"
+              aria-live="polite"
+            >
+              <span className="font-medium">Automatischer Identitätsbeleg:</span>{" "}
+              {evidence}
+            </div>
+          )}
           <Field label="Was ist der nächste klare Schritt? · optional" htmlFor="focus-next"><TextInput id="focus-next" value={nextStep} onChange={(event) => setNextStep(event.target.value)} maxLength={180} /></Field>
           {needsBodyCheck && (
             <ChoiceChips
@@ -257,6 +281,7 @@ function FocusHome() {
   const [error, setError] = useState("");
   const [helperOpen, setHelperOpen] = useState(search.get("helper") === "1");
   const [breakChoice, setBreakChoice] = useState("");
+  const identity = state.settings.identity;
 
   const tasks = useMemo(() => [
     ...(todayPlan ? [{ id: todayPlan.mainTask.id, title: todayPlan.mainTask.title }, ...todayPlan.secondaryTasks.map((task) => ({ id: task.id, title: task.title }))] : []),
@@ -289,6 +314,17 @@ function FocusHome() {
         <h1>Ein Ergebnis. Ein Block.</h1>
         <p>Definiere sichtbar, was am Ende fertig sein soll.</p>
       </header>
+
+      {identity && (
+        <Card variant="accent" padding="sm" className="grid gap-1.5">
+          <p className="text-sm font-medium">
+            Für diesen Block handelst du so: {identity.statement}
+          </p>
+          <p className="text-sm text-[var(--text-muted)]">
+            Ausatmen, Schultern lösen, ersten Schritt sehen.
+          </p>
+        </Card>
+      )}
 
       {needsBreak && (
         <Card className="border-[var(--accent-border)] bg-[var(--accent-soft)]">

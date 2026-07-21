@@ -105,7 +105,7 @@ export function ChoiceChips<Value extends string = string>(
               className={cn(
                 "relative flex min-h-12 cursor-pointer items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition-[border-color,background-color,color,box-shadow]",
                 selected
-                  ? "border-accent bg-accent-soft text-ink shadow-sm"
+                  ? "border-accent bg-accent text-on-accent shadow-sm"
                   : "border-line-strong bg-surface-raised text-ink-soft hover:border-accent-muted hover:bg-surface-muted",
                 optionDisabled && "cursor-not-allowed opacity-45",
               )}
@@ -125,18 +125,21 @@ export function ChoiceChips<Value extends string = string>(
                 className={cn(
                   "grid size-4 place-items-center rounded-full border transition-colors peer-focus-visible:outline-3 peer-focus-visible:outline-offset-3 peer-focus-visible:outline-focus",
                   selected
-                    ? "border-accent bg-accent"
+                    ? "border-on-accent bg-on-accent"
                     : "border-line-strong bg-surface",
                 )}
               >
                 {selected ? (
-                  <span className="size-1.5 rounded-full bg-on-accent" />
+                  <span className="size-1.5 rounded-full bg-accent" />
                 ) : null}
               </span>
               <span>
                 <span className="block">{option.label}</span>
                 {option.description ? (
-                  <span className="mt-0.5 block text-xs font-normal text-muted">
+                  <span className={cn(
+                    "mt-0.5 block text-xs font-normal",
+                    selected ? "text-on-accent/80" : "text-muted",
+                  )}>
                     {option.description}
                   </span>
                 ) : null}

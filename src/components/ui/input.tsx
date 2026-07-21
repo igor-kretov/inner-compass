@@ -59,7 +59,7 @@ export function Field({
     : children;
 
   return (
-    <div className={cn("grid gap-2", className)}>
+    <div className={cn("grid min-w-0 gap-2", className)}>
       <div className="flex items-baseline justify-between gap-3">
         <label
           htmlFor={controlId}
@@ -91,7 +91,7 @@ export function Field({
 }
 
 const controlClassName =
-  "min-h-12 w-full rounded-control border border-line-strong bg-surface-raised px-4 py-2.5 text-base text-ink shadow-sm transition-[border-color,box-shadow,background-color] placeholder:text-faint hover:border-accent-muted focus:border-accent focus:outline-3 focus:outline-offset-2 focus:outline-focus disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-muted disabled:opacity-70 aria-invalid:border-danger aria-invalid:focus:outline-danger";
+  "block min-h-12 min-w-0 max-w-full w-full rounded-control border border-line-strong bg-surface-raised px-4 py-2.5 text-base text-ink shadow-sm transition-[border-color,box-shadow,background-color] placeholder:text-faint hover:border-accent-muted focus:border-accent focus:outline-3 focus:outline-offset-2 focus:outline-focus disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-muted disabled:opacity-70 aria-invalid:border-danger aria-invalid:focus:outline-danger";
 
 export type TextInputProps = InputHTMLAttributes<HTMLInputElement>;
 
@@ -141,7 +141,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
   ref,
 ) {
   return (
-    <span className="relative block">
+    <span className="relative block min-w-0 max-w-full">
       <select
         ref={ref}
         className={cn(

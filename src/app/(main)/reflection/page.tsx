@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { IdentityCompass } from "@/components/identity/identity-compass";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChoiceChips } from "@/components/ui/choice-chips";
@@ -8,8 +9,8 @@ import { Field, TextArea, TextInput } from "@/components/ui/form";
 import { localDateKey, useAppStore, type PatternEntry } from "@/lib/app-store";
 
 const reviewQuestions = [
-  "Was waren meine drei wichtigsten Fortschritte?",
-  "Wo habe ich unnötig vermieden oder aufgeschoben?",
+  "Welche zwei oder drei Momente zeigen, wie du bereits handeln willst?",
+  "Wo zog dich der alte Autopilot zurück – und wie bist du wiedergekehrt?",
   "Welche Aufgabe habe ich größer gemacht, als sie war?",
   "Wann hat mir Struktur geholfen?",
   "Wo bin ich in Hyperfokus oder Gedankenschleifen verschwunden?",
@@ -201,7 +202,7 @@ function WeekOverview() {
 
 export default function ReflectionPage() {
   const { state } = useAppStore();
-  const [tab, setTab] = useState<"week" | "patterns" | "overview">("week");
+  const [tab, setTab] = useState<"week" | "identity" | "patterns" | "overview">("week");
   const [reviewOpen, setReviewOpen] = useState(false);
   const [patternFormOpen, setPatternFormOpen] = useState(false);
   const latestReview = [...state.weeklyReviews].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
@@ -209,8 +210,9 @@ export default function ReflectionPage() {
   return (
     <div className="page-stack">
       <header className="page-header"><p className="eyebrow">Reflexion</p><h1>Erkennen. Entscheiden. Ausrichten.</h1><p>Kurze Rückblicke, die wieder in Handlung führen.</p></header>
-      <nav className="segmented-tabs" aria-label="Reflexionsbereiche">{([['week', 'Wochenreview'], ['patterns', 'Muster'], ['overview', 'Diese Woche']] as const).map(([value, label]) => <button key={value} type="button" aria-current={tab === value ? "page" : undefined} onClick={() => setTab(value)}>{label}</button>)}</nav>
+      <nav className="segmented-tabs four-tabs" aria-label="Reflexionsbereiche">{([['week', 'Wochenreview'], ['identity', 'Identität'], ['patterns', 'Muster'], ['overview', 'Diese Woche']] as const).map(([value, label]) => <button key={value} type="button" aria-current={tab === value ? "page" : undefined} onClick={() => setTab(value)}>{label}</button>)}</nav>
       {tab === "week" && <div className="grid gap-5"><Card className="border-[var(--accent-border)] bg-[var(--accent-soft)]"><p className="eyebrow">Etwa zehn Minuten</p><h2 className="mt-2 text-2xl font-semibold">Nicht bewerten. Erkennen, entscheiden, ausrichten.</h2><p className="mt-3 max-w-xl leading-7 text-[var(--text-muted)]">Ein ehrlicher Wochenblick ohne Leistungsnote. Jede Frage darf übersprungen werden.</p><Button className="mt-6" onClick={() => setReviewOpen(true)}>{state.weeklyReviews.some((review) => review.weekKey === weekKey()) ? "Diese Woche bearbeiten" : "Wochenreview beginnen"}</Button></Card>{latestReview && <Card><p className="eyebrow">Aktuelle Wochenkarte</p><h3 className="mt-2 text-2xl font-semibold">{latestReview.weeklyGoal}</h3>{latestReview.outcomes.length > 0 && <ol className="mt-5 grid gap-2 text-sm text-[var(--text-muted)]">{latestReview.outcomes.map((outcome, index) => <li key={outcome}><span className="mr-2 text-[var(--accent)]">{index + 1}.</span>{outcome}</li>)}</ol>}<div className="mt-5 grid gap-2 border-t border-[var(--border)] pt-5 text-sm text-[var(--text-muted)]">{latestReview.movement && <p><strong className="text-[var(--text)]">Körper:</strong> {latestReview.movement}</p>}{latestReview.meditationIntention && <p><strong className="text-[var(--text)]">Meditation:</strong> {latestReview.meditationIntention}</p>}{latestReview.omit && <p><strong className="text-[var(--text)]">Bewusst weglassen:</strong> {latestReview.omit}</p>}</div></Card>}</div>}
+      {tab === "identity" && <IdentityCompass variant="full" />}
       {tab === "patterns" && <div className="grid gap-5">{patternFormOpen ? <PatternForm onDone={() => setPatternFormOpen(false)} /> : <><Button className="justify-self-start" onClick={() => setPatternFormOpen(true)}>Schnellen Eintrag erfassen</Button><PatternView /></>}</div>}
       {tab === "overview" && <WeekOverview />}
       {reviewOpen && <WeeklyReviewFlow onClose={() => setReviewOpen(false)} />}

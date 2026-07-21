@@ -80,6 +80,7 @@ const MEDITATION_FOCUS_TO_DOMAIN = {
   Geräusche: "sounds",
   "Gedanken beobachten": "thoughts",
   "Offene Präsenz": "open",
+  Ausrichtung: "identity-rehearsal",
 } as const;
 const MEDITATION_FOCUS_TO_UI = reverseMap(MEDITATION_FOCUS_TO_DOMAIN);
 
@@ -200,6 +201,17 @@ function optional(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+function latestMovementCategories(categories: readonly string[]): string[] {
+  const unique = new Map<string, string>();
+  for (let index = categories.length - 1; index >= 0; index -= 1) {
+    const category = categories[index].trim();
+    if (!category) continue;
+    const key = category.toLocaleLowerCase();
+    if (!unique.has(key)) unique.set(key, category);
+  }
+  return [...unique.values()].reverse().slice(-30);
+}
+
 function adapterTimeZone(value: string): string {
   try {
     new Intl.DateTimeFormat("en", { timeZone: value }).format(0);
@@ -263,15 +275,19 @@ function planToDomain(
       primaryTaskId: primaryId,
       secondaryTaskIds: secondaryIds,
       bodyActivity: optional(plan.bodyActivity),
-      bodyCompletedAt: plan.bodyCompleted ? plan.updatedAt : null,
+      bodyCompletedAt: plan.bodyCompleted ? plan.bodyCompletedAt ?? plan.updatedAt : null,
       meditationPlan: plan.meditationSkipped
         ? "not-planned"
         : [5, 10, 20].includes(plan.meditationMinutes ?? -1)
           ? plan.meditationMinutes
           : null,
-      meditationCompletedAt: plan.meditationCompleted ? plan.updatedAt : null,
+      meditationCompletedAt: plan.meditationCompleted
+        ? plan.meditationCompletedAt ?? plan.updatedAt
+        : null,
       courageousAction: optional(plan.courageousAction),
-      courageousActionCompletedAt: plan.courageousCompleted ? plan.updatedAt : null,
+      courageousActionCompletedAt: plan.courageousCompleted
+        ? plan.courageousCompletedAt ?? plan.updatedAt
+        : null,
       primaryStartTime: plan.startTime ?? null,
       plannedAt: plan.createdAt,
     }),
@@ -356,6 +372,7 @@ function planToDomain(
         whatMattered: optional(plan.reflection.important),
         leaveBehind: optional(plan.reflection.leaveBehind),
         note: optional(plan.reflection.note),
+        identityEvidence: optional(plan.reflection.identityEvidence),
       }),
     );
   }
@@ -624,13 +641,25 @@ export function appStateToDataStore(state: AppState): DataStore {
         .map((anchor) => dictionaryValue(UI_TO_ANCHOR, anchor))
         .filter((anchor): anchor is NonNullable<typeof anchor> => anchor !== undefined)
         .slice(0, 3),
+      movementCategories: latestMovementCategories(state.settings.movementCategories),
+      identityPractice: state.settings.identity
+        ? {
+            statement: state.settings.identity.statement,
+            action: optional(state.settings.identity.action),
+            startedAt: state.settings.identity.startedAt,
+            reframe: optional(state.settings.identity.reframe),
+            rehearsalDates: [...new Set(state.settings.identity.rehearsalDates)]
+              .sort()
+              .slice(-366),
+          }
+        : null,
       emergencyContactId: emergencyExists ? EMERGENCY_CONTACT_ID : null,
     }),
   );
   data.onboardingStates.push(
     OnboardingStateSchema.parse({
       ...metadata(ONBOARDING_ID, singletonCreatedAt, state.updatedAt, timeZone),
-      currentStep: state.onboardingComplete ? 5 : 1,
+      currentStep: state.onboardingComplete ? 4 : 1,
       completed: state.onboardingComplete,
       completedAt: state.onboardingComplete ? state.updatedAt : null,
     }),
@@ -679,12 +708,24 @@ function settingsToUi(settings: DomainSettings | undefined, data: DataStore): Ui
     reviewTime: settings?.weeklyReviewTime ?? "18:00",
     focusDuration,
     anchors: (settings?.anchors ?? []).map((anchor) => ANCHOR_TO_UI[anchor]),
+    movementCategories: settings
+      ? settings.movementCategories
+      : ["Muay Thai", "Fitness", "Spaziergang", "Laufen", "Mobility", "Erholung"],
     theme: settings?.theme ?? "system",
     sounds: settings?.timerSoundEnabled ?? true,
     haptics: settings?.hapticFeedbackEnabled ?? true,
     emergencyName: contact?.name ?? "",
     emergencyPhone: contact?.contact ?? "",
     timezone: settings?.timeZone ?? systemTimeZone(),
+    identity: settings?.identityPractice
+      ? {
+          statement: settings.identityPractice.statement,
+          action: settings.identityPractice.action,
+          startedAt: settings.identityPractice.startedAt,
+          reframe: settings.identityPractice.reframe,
+          rehearsalDates: settings.identityPractice.rehearsalDates,
+        }
+      : undefined,
   };
 }
 
@@ -734,18 +775,22 @@ function planToUi(
     secondaryTasks,
     bodyActivity: plan.bodyActivity,
     bodyCompleted: plan.bodyCompletedAt !== null,
+    bodyCompletedAt: plan.bodyCompletedAt ?? undefined,
     meditationMinutes:
       typeof plan.meditationPlan === "number" ? plan.meditationPlan : undefined,
     meditationSkipped: plan.meditationPlan === "not-planned",
     meditationCompleted: plan.meditationCompletedAt !== null,
+    meditationCompletedAt: plan.meditationCompletedAt ?? undefined,
     courageousAction: plan.courageousAction,
     courageousCompleted: plan.courageousActionCompletedAt !== null,
+    courageousCompletedAt: plan.courageousActionCompletedAt ?? undefined,
     startTime: plan.primaryStartTime ?? undefined,
     reflection: reflection
       ? {
           important: reflection.whatMattered,
           leaveBehind: reflection.leaveBehind,
           note: reflection.note,
+          identityEvidence: reflection.identityEvidence,
           completedAt: reflection.updatedAt,
         }
       : undefined,

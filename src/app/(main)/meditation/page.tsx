@@ -108,23 +108,59 @@ export default function MeditationPage() {
   const [duration, setDuration] = useState(String(todayPlan?.meditationMinutes ?? 10));
   const [custom, setCustom] = useState(15);
   const [focus, setFocus] = useState("");
+  const [mode, setMode] = useState<"stillness" | "alignment">("stillness");
+  const identity = state.settings.identity;
+  const alignmentActive = Boolean(identity && mode === "alignment");
+  const firstStep = todayPlan?.nextStep.trim()
+    || todayPlan?.mainTask.title.trim()
+    || identity?.action?.trim()
+    || "den ersten ruhigen Schritt";
+  const firstStepSentence = /[.!?]$/.test(firstStep) ? firstStep : `${firstStep}.`;
 
   if (activeMeditation?.status === "running" || activeMeditation?.status === "paused") return <ActiveMeditation session={activeMeditation} />;
   if (activeMeditation?.status === "review") return <MeditationReview session={activeMeditation} />;
 
   return (
     <div className="page-stack">
-      <header className="page-header"><p className="eyebrow">Meditation</p><h1>Still werden. Nichts leisten.</h1><p>Wähle eine Dauer und, wenn hilfreich, einen sanften Fokus.</p></header>
+      <header className="page-header"><p className="eyebrow">Meditation</p><h1>Still werden. Nichts leisten.</h1><p>{identity ? "Wähle Stille oder eine kurze mentale Ausrichtung." : "Wähle eine Dauer und, wenn hilfreich, einen sanften Fokus."}</p></header>
       <Card className="grid gap-7">
-        <ChoiceChips label="Dauer" value={duration} options={[
-          { value: "5", label: "5 Min" }, { value: "10", label: "10 Min" }, { value: "20", label: "20 Min" }, { value: "custom", label: "Eigene" },
-        ]} onChange={setDuration} />
-        {duration === "custom" && <Field label="Eigene Dauer · bis 60 Minuten" htmlFor="meditation-duration"><TextInput id="meditation-duration" type="number" min={1} max={60} value={custom} onChange={(event) => setCustom(Math.min(60, Math.max(1, Number(event.target.value))))} /></Field>}
-        <ChoiceChips label="Optionaler Fokus" value={focus} options={["Atem", "Körper", "Geräusche", "Gedanken beobachten", "Offene Präsenz"].map((label) => ({ value: label, label }))} onChange={setFocus} />
+        {identity && (
+          <ChoiceChips
+            label="Modus"
+            value={mode}
+            options={[
+              { value: "stillness", label: "Stille" },
+              { value: "alignment", label: "Ausrichtung", description: "3 Minuten mentale Probe" },
+            ]}
+            onChange={(value) => setMode(value as typeof mode)}
+          />
+        )}
+        {alignmentActive && identity ? (
+          <Card variant="muted" padding="sm">
+            <p className="eyebrow">3-Minuten-Ausrichtung</p>
+            <ol className="mt-4 grid gap-3 text-sm leading-6">
+              <li><span className="mr-2 font-semibold text-[var(--accent)]">1.</span>Ausatmen. Schultern und Kiefer weich werden lassen.</li>
+              <li><span className="mr-2 font-semibold text-[var(--accent)]">2.</span>Den ersten Schritt ruhig vor dir sehen: {firstStepSentence}</li>
+              <li><span className="mr-2 font-semibold text-[var(--accent)]">3.</span>Eine Ablenkung bemerken und ohne Drama ruhig zum Schritt zurückkehren.</li>
+              <li><span className="mr-2 font-semibold text-[var(--accent)]">4.</span>Den Satz mitnehmen: {identity.statement}</li>
+            </ol>
+          </Card>
+        ) : (
+          <>
+            <ChoiceChips label="Dauer" value={duration} options={[
+              { value: "5", label: "5 Min" }, { value: "10", label: "10 Min" }, { value: "20", label: "20 Min" }, { value: "custom", label: "Eigene" },
+            ]} onChange={setDuration} />
+            {duration === "custom" && <Field label="Eigene Dauer · bis 60 Minuten" htmlFor="meditation-duration"><TextInput id="meditation-duration" type="number" min={1} max={60} value={custom} onChange={(event) => setCustom(Math.min(60, Math.max(1, Number(event.target.value))))} /></Field>}
+            <ChoiceChips label="Optionaler Fokus" value={focus} options={["Atem", "Körper", "Geräusche", "Gedanken beobachten", "Offene Präsenz"].map((label) => ({ value: label, label }))} onChange={setFocus} />
+          </>
+        )}
         <Button className="w-full" onClick={() => {
           playMeditationTone(state.settings.sounds);
-          startMeditation(duration === "custom" ? custom : Number(duration), focus || undefined);
-        }}>Meditation beginnen</Button>
+          startMeditation(
+            alignmentActive ? 3 : duration === "custom" ? custom : Number(duration),
+            alignmentActive ? "Ausrichtung" : focus || undefined,
+          );
+        }}>{alignmentActive ? "Ausrichtung beginnen" : "Meditation beginnen"}</Button>
       </Card>
       <p className="text-center text-sm leading-6 text-[var(--text-muted)]">Der Bildschirm bleibt, soweit der Browser es zulässt, während der Meditation aktiv.</p>
     </div>

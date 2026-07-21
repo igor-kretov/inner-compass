@@ -82,6 +82,8 @@ React Testing Library prüft Verhalten aus Nutzersicht. Abfragen erfolgen bevorz
 - Reset-Flow einschließlich Körperauswahl und Rückkehr;
 - Fokusabschluss mit Ergebnis und nächstem Schritt;
 - Meditation speichern und wertungsfrei abschließen;
+- Identitätsausrichtung, kurze mentale Probe und automatisch abgeleitete Belege;
+- Ausrichtungsmeditation mit dem konkreten nächsten Schritt des Tagesplans;
 - Wochenreview mit übersprungenen Fragen;
 - Einstellungen sowie Importvorschau;
 - doppelte Bestätigung vor vollständigem Löschen.

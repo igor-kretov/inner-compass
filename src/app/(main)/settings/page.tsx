@@ -2,13 +2,12 @@
 
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { IdentityCompass } from "@/components/identity/identity-compass";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChoiceChips } from "@/components/ui/choice-chips";
 import { Field, TextInput } from "@/components/ui/form";
 import { useAppStore, type AppSettings, type AppState } from "@/lib/app-store";
-
-const anchorOptions = ["Körper", "Arbeit", "Ruhe", "Beziehungen", "Mut", "Ordnung", "Kreativität", "Spiritualität"];
 
 type Preview = { state: AppState; counts: Record<string, number>; exportedAt?: string };
 
@@ -44,15 +43,11 @@ export default function SettingsPage() {
       return;
     }
     setSettingsError("");
-    updateSettings(draft);
+    // The identity card persists independently from this longer settings form.
+    // Preserve its latest value even when this form was opened before an identity edit.
+    updateSettings({ ...draft, identity: state.settings.identity });
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2200);
-  };
-
-  const toggleAnchor = (anchor: string) => {
-    const selected = draft.anchors.includes(anchor);
-    if (!selected && draft.anchors.length >= 3) return;
-    setDraft({ ...draft, anchors: selected ? draft.anchors.filter((item) => item !== anchor) : [...draft.anchors, anchor] });
   };
 
   const downloadExport = () => {
@@ -99,17 +94,21 @@ export default function SettingsPage() {
 
       {storageFallback && <Card className="border-[var(--warning-border)] bg-[var(--warning-soft)]"><p className="font-medium">Eingeschränkter Speichermodus</p><p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">IndexedDB ist in diesem Browser nicht verfügbar. Inner Compass nutzt einen eingeschränkten lokalen Ersatzspeicher. Exportiere wichtige Daten vorsichtshalber regelmäßig.</p></Card>}
 
+      <section aria-labelledby="identity-settings">
+        <div className="section-heading"><div><p className="eyebrow">Ausrichtung</p><h2 id="identity-settings">Identitäts-Kompass</h2></div></div>
+        <IdentityCompass variant="compact" />
+      </section>
+
       <form onSubmit={save} className="grid gap-6">
-        <section aria-labelledby="personal-settings"><div className="section-heading"><div><p className="eyebrow">Persönlich</p><h2 id="personal-settings">Anrede und Rhythmus</h2></div></div><Card className="grid gap-5">
+        <section aria-labelledby="personal-settings"><div className="section-heading"><div><p className="eyebrow">Persönlich</p><h2 id="personal-settings">Anrede und Rhythmus</h2></div></div><Card className="grid min-w-0 gap-5" role="group" aria-label="Persönliche Rhythmus-Einstellungen">
           <Field label="Name oder Anrede · optional" htmlFor="settings-name"><TextInput id="settings-name" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} maxLength={80} autoComplete="nickname" /></Field>
-          <div className="grid grid-cols-2 gap-4"><Field label="Tagesbeginn" htmlFor="settings-day-start"><TextInput id="settings-day-start" type="time" value={draft.dayStart} onChange={(event) => setDraft({ ...draft, dayStart: event.target.value })} /></Field><Field label="Meditation" htmlFor="settings-meditation-time"><TextInput id="settings-meditation-time" type="time" value={draft.meditationTime} onChange={(event) => setDraft({ ...draft, meditationTime: event.target.value })} /></Field><Field label="Training" htmlFor="settings-training-time"><TextInput id="settings-training-time" type="time" value={draft.trainingTime} onChange={(event) => setDraft({ ...draft, trainingTime: event.target.value })} /></Field><Field label="Review-Uhrzeit" htmlFor="settings-review-time"><TextInput id="settings-review-time" type="time" value={draft.reviewTime} onChange={(event) => setDraft({ ...draft, reviewTime: event.target.value })} /></Field></div>
+          <div className="grid min-w-0 gap-4 sm:grid-cols-2"><Field label="Tagesbeginn" htmlFor="settings-day-start"><TextInput id="settings-day-start" type="time" value={draft.dayStart} onChange={(event) => setDraft({ ...draft, dayStart: event.target.value })} /></Field><Field label="Meditation" htmlFor="settings-meditation-time"><TextInput id="settings-meditation-time" type="time" value={draft.meditationTime} onChange={(event) => setDraft({ ...draft, meditationTime: event.target.value })} /></Field><Field label="Training" htmlFor="settings-training-time"><TextInput id="settings-training-time" type="time" value={draft.trainingTime} onChange={(event) => setDraft({ ...draft, trainingTime: event.target.value })} /></Field><Field label="Review-Uhrzeit" htmlFor="settings-review-time"><TextInput id="settings-review-time" type="time" value={draft.reviewTime} onChange={(event) => setDraft({ ...draft, reviewTime: event.target.value })} /></Field></div>
           <Field label="Wochenreview-Tag" htmlFor="settings-review-day"><select id="settings-review-day" className="control" value={draft.reviewDay} onChange={(event) => setDraft({ ...draft, reviewDay: event.target.value })}>{["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"].map((day, index) => <option key={day} value={index}>{day}</option>)}</select></Field>
           <ChoiceChips label="Standard-Fokusdauer" value={String(draft.focusDuration)} options={[25, 50, 90].map((minutes) => ({ value: String(minutes), label: `${minutes} Min` }))} onChange={(value) => setDraft({ ...draft, focusDuration: Number(value) as 25 | 50 | 90 })} />
         </Card></section>
 
         <section aria-labelledby="appearance-settings"><div className="section-heading"><div><p className="eyebrow">Darstellung</p><h2 id="appearance-settings">Ruhig und zugänglich</h2></div></div><Card className="grid gap-6">
           <ChoiceChips label="Farbmodus" value={draft.theme} options={[{ value: "system", label: "System" }, { value: "light", label: "Hell" }, { value: "dark", label: "Dunkel" }]} onChange={(value) => setDraft({ ...draft, theme: value as AppSettings["theme"] })} />
-          <div><p className="text-sm font-medium">Persönliche Lebensanker · bis zu drei</p><div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Lebensanker">{anchorOptions.map((anchor) => { const selected = draft.anchors.includes(anchor); return <button type="button" key={anchor} className="chip" aria-pressed={selected} disabled={!selected && draft.anchors.length >= 3} onClick={() => toggleAnchor(anchor)}>{anchor}</button>; })}</div></div>
           <label className="setting-toggle"><span><strong>Start- und Endton</strong><small>Dezenter Ton bei Timern</small></span><input type="checkbox" checked={draft.sounds} onChange={(event) => setDraft({ ...draft, sounds: event.target.checked })} /></label>
           <label className="setting-toggle"><span><strong>Haptisches Feedback</strong><small>Nur soweit der Browser es unterstützt</small></span><input type="checkbox" checked={draft.haptics} onChange={(event) => setDraft({ ...draft, haptics: event.target.checked })} /></label>
         </Card></section>

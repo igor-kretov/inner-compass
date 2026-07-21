@@ -112,16 +112,20 @@ export type DailyPlan = {
   secondaryTasks: Task[];
   bodyActivity?: string;
   bodyCompleted: boolean;
+  bodyCompletedAt?: string;
   meditationMinutes?: number;
   meditationSkipped: boolean;
   meditationCompleted: boolean;
+  meditationCompletedAt?: string;
   courageousAction?: string;
   courageousCompleted: boolean;
+  courageousCompletedAt?: string;
   startTime?: string;
   reflection?: {
     important?: string;
     leaveBehind?: string;
     note?: string;
+    identityEvidence?: string;
     completedAt: string;
   };
   createdAt: string;
@@ -219,6 +223,23 @@ export type PatternEntry = {
 };
 
 export type ThemeMode = "system" | "light" | "dark";
+export const DEFAULT_MOVEMENT_CATEGORIES = [
+  "Muay Thai",
+  "Fitness",
+  "Spaziergang",
+  "Laufen",
+  "Mobility",
+  "Erholung",
+] as const;
+
+export type IdentityProfile = {
+  statement: string;
+  action?: string;
+  startedAt: string;
+  reframe?: string;
+  rehearsalDates: string[];
+};
+
 export type AppSettings = {
   name: string;
   dayStart: string;
@@ -228,12 +249,14 @@ export type AppSettings = {
   reviewTime: string;
   focusDuration: 25 | 50 | 90;
   anchors: string[];
+  movementCategories: string[];
   theme: ThemeMode;
   sounds: boolean;
   haptics: boolean;
   emergencyName: string;
   emergencyPhone: string;
   timezone: string;
+  identity?: IdentityProfile;
 };
 
 export type AppState = {
@@ -291,6 +314,7 @@ const defaultSettings = (): AppSettings => ({
   reviewTime: "18:00",
   focusDuration: 50,
   anchors: [],
+  movementCategories: [...DEFAULT_MOVEMENT_CATEGORIES],
   theme: "system",
   sounds: true,
   haptics: true,
@@ -329,6 +353,57 @@ function normalizeTask(task: Task): Task {
   };
 }
 
+function normalizeMovementCategories(value: unknown): string[] {
+  if (!Array.isArray(value)) return [...DEFAULT_MOVEMENT_CATEGORIES];
+  const unique = new Map<string, string>();
+  for (let index = value.length - 1; index >= 0; index -= 1) {
+    const item = value[index];
+    if (typeof item !== "string") continue;
+    const category = item.trim();
+    if (!category) continue;
+    const key = category.toLocaleLowerCase();
+    if (!unique.has(key)) unique.set(key, category);
+  }
+  return [...unique.values()].reverse().slice(-30);
+}
+
+function normalizeIdentityProfile(value: unknown): IdentityProfile | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const source = value as Partial<Record<keyof IdentityProfile, unknown>>;
+  const statement = typeof source.statement === "string"
+    ? source.statement.trim().slice(0, 240)
+    : "";
+  const startedAt = typeof source.startedAt === "string" ? new Date(source.startedAt) : null;
+  if (!statement || !startedAt || Number.isNaN(startedAt.getTime())) return undefined;
+
+  const optionalText = (input: unknown, max: number) => {
+    if (typeof input !== "string") return undefined;
+    const normalized = input.trim().slice(0, max);
+    return normalized || undefined;
+  };
+  const validLocalDate = (input: unknown): input is string => {
+    if (typeof input !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(input)) return false;
+    const [year, month, day] = input.split("-").map(Number);
+    const parsed = new Date(Date.UTC(year, month - 1, day));
+    return parsed.getUTCFullYear() === year
+      && parsed.getUTCMonth() === month - 1
+      && parsed.getUTCDate() === day;
+  };
+  const rehearsalDates = Array.isArray(source.rehearsalDates)
+    ? [...new Set(
+        source.rehearsalDates.filter(validLocalDate),
+      )].sort().slice(-366)
+    : [];
+
+  return {
+    statement,
+    action: optionalText(source.action, 300),
+    startedAt: startedAt.toISOString(),
+    reframe: optionalText(source.reframe, 500),
+    rehearsalDates,
+  };
+}
+
 function normalizeState(value: Partial<AppState> | undefined): AppState {
   const base = emptyState();
   const currentTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
@@ -338,7 +413,13 @@ function normalizeState(value: Partial<AppState> | undefined): AppState {
     ...value,
     key: "app",
     schemaVersion: APP_SCHEMA_VERSION,
-    settings: { ...base.settings, ...(value.settings ?? {}), timezone: currentTimeZone },
+    settings: {
+      ...base.settings,
+      ...(value.settings ?? {}),
+      movementCategories: normalizeMovementCategories(value.settings?.movementCategories),
+      identity: normalizeIdentityProfile(value.settings?.identity),
+      timezone: currentTimeZone,
+    },
     plans: Array.isArray(value.plans)
       ? value.plans.map((plan) => ({
           ...plan,
@@ -398,6 +479,7 @@ type ImportPreview = {
   state: AppState;
   counts: Record<string, number>;
   exportedAt?: string;
+  settingsUpdatedAt?: string;
 };
 
 export type RoutineInput = {
@@ -501,7 +583,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!ready) return;
-    const next = { ...state, updatedAt: nowIso() };
+    // Mutations already carry their logical timestamp. Persisting a newer,
+    // state-external timestamp here would make this tab receive its own write
+    // as a newer state and could create a BroadcastChannel write loop.
+    const next = state;
     writeState(next)
       .then((backend) => {
         setStorageFallback(backend !== "indexedDB");
@@ -563,14 +648,31 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     activeFocus,
     activeMeditation,
     completeOnboarding(settings) {
-      mutate((current) => ({
-        ...current,
-        onboardingComplete: true,
-        settings: { ...current.settings, ...settings },
-      }));
+      mutate((current) => {
+        const nextSettings = { ...current.settings, ...settings };
+        return {
+          ...current,
+          onboardingComplete: true,
+          settings: {
+            ...nextSettings,
+            movementCategories: normalizeMovementCategories(nextSettings.movementCategories),
+            identity: normalizeIdentityProfile(nextSettings.identity),
+          },
+        };
+      });
     },
     updateSettings(settings) {
-      mutate((current) => ({ ...current, settings: { ...current.settings, ...settings } }));
+      mutate((current) => {
+        const nextSettings = { ...current.settings, ...settings };
+        return {
+          ...current,
+          settings: {
+            ...nextSettings,
+            movementCategories: normalizeMovementCategories(nextSettings.movementCategories),
+            identity: normalizeIdentityProfile(nextSettings.identity),
+          },
+        };
+      });
     },
     restartOnboarding() {
       mutate((current) => ({ ...current, onboardingComplete: false }));
@@ -592,8 +694,16 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           schemaVersion: APP_SCHEMA_VERSION,
           timezone: plan.timezone ?? current.settings.timezone,
         };
+        const movementCategory = plan.bodyActivity?.trim();
+        const movementCategories = movementCategory
+          && !current.settings.movementCategories.some(
+            (category) => category.toLocaleLowerCase() === movementCategory.toLocaleLowerCase(),
+          )
+          ? normalizeMovementCategories([...current.settings.movementCategories, movementCategory])
+          : current.settings.movementCategories;
         return {
           ...current,
+          settings: { ...current.settings, movementCategories },
           plans: [...current.plans.filter((item) => item.date !== saved.date), saved],
         };
       });
@@ -1237,16 +1347,31 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       }));
     },
     completeMeditation(id, presence, note) {
+      const completedAt = nowIso();
       mutate((current) => ({
         ...current,
         meditationSessions: current.meditationSessions.map((item) =>
           item.id === id
-            ? { ...item, presence, note, endedAt: item.endedAt ?? nowIso(), status: "completed", updatedAt: nowIso() }
+            ? {
+                ...item,
+                presence,
+                note,
+                endedAt: item.endedAt ?? completedAt,
+                status: "completed",
+                updatedAt: completedAt,
+              }
             : item,
         ),
         activeMeditationId: current.activeMeditationId === id ? undefined : current.activeMeditationId,
         plans: current.plans.map((plan) =>
-          plan.date === localDateKey() ? { ...plan, meditationCompleted: true, updatedAt: nowIso() } : plan,
+          plan.date === localDateKey()
+            ? {
+                ...plan,
+                meditationCompleted: true,
+                meditationCompletedAt: plan.meditationCompletedAt ?? completedAt,
+                updatedAt: completedAt,
+              }
+            : plan,
         ),
       }));
     },
@@ -1300,9 +1425,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     previewImport(text) {
       const envelope = parseDataImport(text);
       const domainCounts = previewDataImport(envelope);
+      const settingsUpdatedAt = envelope.data.appSettings
+        .map((settings) => settings.updatedAt)
+        .sort()
+        .at(-1);
       return {
         state: normalizeState(dataStoreToAppState(envelope.data)),
         exportedAt: envelope.exportedAt,
+        settingsUpdatedAt,
         counts: {
           plans: domainCounts.dailyPlans,
           focusSessions: domainCounts.focusSessions,
@@ -1319,9 +1449,11 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     applyImport(preview, mode) {
       mutate((current) => {
         if (mode === "replace") return { ...preview.state, key: "app" };
+        const incomingSettingsAreNewer = preview.settingsUpdatedAt !== undefined
+          && new Date(preview.settingsUpdatedAt).getTime() > new Date(current.updatedAt).getTime();
         return {
           ...current,
-          settings: { ...current.settings, ...preview.state.settings },
+          settings: incomingSettingsAreNewer ? preview.state.settings : current.settings,
           onboardingComplete: current.onboardingComplete || preview.state.onboardingComplete,
           plans: mergeById(current.plans, preview.state.plans),
           focusSessions: mergeById(current.focusSessions, preview.state.focusSessions),

@@ -47,6 +47,14 @@ Erinnerungen nur dort, wo PWA und Betriebssystem sie zuverlässig und mit klarer
 
 Die bestehende Datumsleiste des Today-Planers könnte zu einer gemeinsamen Navigation für Tagespläne und Reviews erweitert werden. Kein vollständiger Kalenderersatz und zunächst keine externe Kalenderintegration.
 
+### Fokus-Saisons statt statischer Lebensanker
+
+Lebensbereiche wie Körper, Arbeit oder Beziehungen werden nicht als folgenlose Dauerauswahl geführt. Eine spätere Saison-Funktion soll einen Bereich für einen selbst gewählten Zeitraum priorisieren, ein überprüfbares Ziel und einen End- oder Reviewzeitpunkt festhalten und den bewussten Wechsel in die nächste Saison ermöglichen. Vor Umsetzung muss geklärt sein, welche sichtbaren Empfehlungen oder Planungsentscheidungen sich daraus tatsächlich ergeben; reine Kennzeichnung ohne Wirkung bleibt ausgeschlossen.
+
+### Identitäts-Saisons und frei wählbare Review-Zeiträume
+
+Der MVP führt genau eine aktive, glaubwürdige Handlungsidentität und einen unverbindlichen 21-Tage-Review-Rahmen. Später kann daraus eine versionierte Saison mit frei wählbarem Enddatum und bewusstem Rückblick werden. Frühere Sätze und ihre damaligen Belege dürfen dabei nicht rückwirkend umgedeutet werden. Eine feste 21-Tage-Erfolgsschwelle, Streak oder „Thermostat-Score“ bleibt ausgeschlossen.
+
 ### App-Sperre oder Geräteschutz
 
 Prüfung einer lokalen Sperre beziehungsweise Nutzung sicherer Plattformfunktionen. Vor Implementierung müssen Wiederherstellung, Datenverlust-Risiko und die Grenzen einer reinen Web-App geklärt sein.
