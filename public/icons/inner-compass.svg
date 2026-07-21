@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">Inner Compass</title>
+  <desc id="description">Ein reduzierter geometrischer Kompass mit ruhigem Richtungspunkt.</desc>
+  <rect width="512" height="512" fill="#17251f"/>
+  <circle cx="256" cy="256" r="158" fill="none" stroke="#d9d1bd" stroke-width="12"/>
+  <circle cx="256" cy="256" r="112" fill="none" stroke="#53695e" stroke-width="4"/>
+  <path d="M256 128 298 256 256 384 214 256Z" fill="#f4efe3"/>
+  <path d="M256 128 298 256 256 236Z" fill="#c58c5b"/>
+  <path d="M256 384 214 256 256 276Z" fill="#899b91"/>
+  <circle cx="256" cy="256" r="18" fill="#17251f" stroke="#d9d1bd" stroke-width="8"/>
+  <circle cx="256" cy="93" r="8" fill="#c58c5b"/>
+</svg>
