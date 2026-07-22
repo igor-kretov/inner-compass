@@ -23,19 +23,19 @@ Vor Ausbau werden zwei Wochen reale Nutzung anhand dieser Fragen beobachtet:
 
 ### Today-Planer
 
-Die Tabs Tag, Routinen und Woche bündeln tägliche Ausführung, wiederkehrende Abläufe und eine schlanke Wochenplanung. Tagesaufgaben und Routinen sind den Abschnitten Morgen, Tag oder Abend zugeordnet; eine optionale Uhrzeit bleibt ein weicher Startanker ohne Reminder.
+Ein leerer Kalendertag lässt sich mit einem Tap aus einer Tagesvorlage vorbereiten. Danach zeigt Today nur eine datierte, geordnete Checkliste mit sechs Blöcken: Morgen, Organisation, Business, Sport, Bonus für den Abend und Abend. Punkte lassen sich ergänzen, löschen, abhaken und per Drag-and-drop innerhalb eines Blocks oder zwischen Blöcken verschieben. Reihenfolge und Status bleiben lokal erhalten.
 
-### Wiederkehrende Vorlagen
+### Reibungsarme Vorbereitung am Vorabend
 
-Routinen bestehen aus einem bis sechs Schritten, ausgewählten Wochentagen, einem Tagesabschnitt und einer optionalen Uhrzeit. Für jeden passenden Tag entsteht eine unabhängige Instanz. Änderungen gelten nur für künftig neu erzeugte Vorkommen; protokollierte Tage bleiben erhalten. Routinen und einzelne Tagesinstanzen dürfen bewusst pausiert beziehungsweise ausgelassen werden, ohne Streak oder Strafe.
+Der Einstieg richtet sich standardmäßig auf den nächsten Tag. „Tag aus Vorlage vorbereiten“ kopiert die Standardblöcke und ihre Punkte genau einmal in den gewählten Tag. Am Morgen ist kein erneutes Planungsformular nötig; der vorbereitete Plan ist sofort ausführbar.
 
 ### Dynamische Tagesaufgaben
 
-Neben dem bewusst kleinen Tageskern können zusätzliche Aufgaben erfasst werden. Sie lassen sich erledigen, auslassen, wieder öffnen oder genau auf den nächsten lokalen Kalendertag verschieben. Die Domäne setzt 30 Einträge als technische Obergrenze, nicht als Planungsziel.
+Neue Punkte entstehen direkt in dem Block, in dem sie gebraucht werden. Es gibt keine getrennten Felder für Hauptaufgabe, Nebenaufgaben, Bewegung, Meditation, mutige Handlung, Routine oder Uhrzeit. Die Domäne setzt 31 Checklistenpunkte als technische Obergrenze, nicht als Planungsziel.
 
-### Schlanke Wochenplanung
+### Ruhige Orientierung
 
-Ein Wochenplan enthält einen optionalen Fokus, bis zu drei Ergebnisse und einen Aufgabenparkplatz. Eine geparkte Aufgabe gelangt erst nach bewusster Auswahl eines Datums in den Tagesplan; es gibt keine automatische Verteilung.
+Eine kurze Aufmerksamkeitsintention und die Frage „Was ist heute nützlich und sauber?“ können oberhalb der Blöcke Orientierung geben. Beide bleiben Teil des Plans statt ein separater Reflexions- oder Bewertungsfluss zu werden.
 
 ## Phase 2 – stärkere lokale Struktur
 
@@ -46,6 +46,10 @@ Erinnerungen nur dort, wo PWA und Betriebssystem sie zuverlässig und mit klarer
 ### Übergreifende Kalenderansicht
 
 Die bestehende Datumsleiste des Today-Planers könnte zu einer gemeinsamen Navigation für Tagespläne und Reviews erweitert werden. Kein vollständiger Kalenderersatz und zunächst keine externe Kalenderintegration.
+
+### Bearbeitbare Tagesvorlagen
+
+Der MVP liefert zunächst eine konkrete Standardvorlage. Erst reale Nutzung soll zeigen, ob mehrere benannte Vorlagen oder ein eigener Vorlageneditor Reibung reduzieren. Eine solche Erweiterung darf den täglichen Screen nicht wieder mit Kategorien, Zeitfeldern oder Konfiguration überladen.
 
 ### Fokus-Saisons statt statischer Lebensanker
 

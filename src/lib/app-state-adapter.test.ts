@@ -23,6 +23,8 @@ const ID = {
   secondaryMorning: "10000000-0000-4000-8000-000000000017",
   secondaryEvening: "10000000-0000-4000-8000-000000000018",
   carriedFrom: "10000000-0000-4000-8000-000000000019",
+  morningBlock: "10000000-0000-4000-8000-000000000020",
+  businessBlock: "10000000-0000-4000-8000-000000000021",
 };
 
 const CREATED = "2025-04-10T08:00:00.000Z";
@@ -519,6 +521,46 @@ describe("AppState/DataStore-Adapter", () => {
     const data = appStateToDataStore(state);
     expect(data.meditationSessions[0].focus).toBe("identity-rehearsal");
     expect(dataStoreToAppState(data).meditationSessions[0].focus).toBe("Ausrichtung");
+  });
+
+  it("erhält den simplen Block-Tagesplan und seine Aufgabenzuordnung im Roundtrip", () => {
+    const state = completeUiState();
+    state.plans[0] = {
+      ...state.plans[0],
+      intention: "Reaktionen wahrnehmen, ohne ihnen automatisch zu folgen.",
+      focusNote: "Was ist heute nützlich und sauber?",
+      plannerBlocks: [
+        { id: ID.morningBlock, title: "Morgen Block", note: "kein Handy bis fertig" },
+        { id: ID.businessBlock, title: "Business Block" },
+      ],
+      mainTask: { ...state.plans[0].mainTask, plannerBlockId: ID.morningBlock },
+      secondaryTasks: state.plans[0].secondaryTasks.map((task) => ({
+        ...task,
+        plannerBlockId: ID.businessBlock,
+      })),
+    };
+
+    const data = appStateToDataStore(state);
+    expect(data.dailyPlans[0]).toMatchObject({
+      intention: state.plans[0].intention,
+      focusNote: state.plans[0].focusNote,
+      plannerBlocks: [
+        { id: ID.morningBlock, title: "Morgen Block", note: "kein Handy bis fertig" },
+        { id: ID.businessBlock, title: "Business Block", note: null },
+      ],
+    });
+    expect(data.dailyTasks).toMatchObject([
+      { id: ID.primary, plannerBlockId: ID.morningBlock },
+      { id: ID.secondary, plannerBlockId: ID.businessBlock },
+    ]);
+
+    expect(dataStoreToAppState(data).plans[0]).toMatchObject({
+      intention: state.plans[0].intention,
+      focusNote: state.plans[0].focusNote,
+      plannerBlocks: state.plans[0].plannerBlocks,
+      mainTask: { plannerBlockId: ID.morningBlock },
+      secondaryTasks: [{ plannerBlockId: ID.businessBlock }],
+    });
   });
 
   it("behält bei begrenzten Einstellungen die neuesten Kategorien und Probentage", () => {

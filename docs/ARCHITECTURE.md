@@ -20,7 +20,7 @@ Next.js App Router + React-Komponenten
 - **Next.js App Router** übernimmt Routing, Layout und Metadaten.
 - **React und TypeScript im Strict Mode** bilden die interaktive Oberfläche.
 - **Tailwind CSS 4 und CSS-Tokens** liefern ein kleines responsives Designsystem.
-- Die Routen `/today`, `/focus`, `/reset`, `/reflection` und `/settings` entsprechen der Hauptnavigation. `/today` bündelt intern die Tabs Tag, Routinen und Woche; `/onboarding` und `/meditation` sind kontextuelle Flows.
+- Die Routen `/today`, `/focus`, `/reset`, `/reflection` und `/settings` entsprechen der Hauptnavigation. `/today` zeigt genau einen datierten Block-Tagesplan; `/onboarding` und `/meditation` sind kontextuelle Flows.
 - Das Theme wird über `data-theme="light|dark"` am Dokument gesteuert. Ohne Attribut gilt der Systemmodus; die lokale Präferenz liegt unter `inner-compass-theme`.
 - Der Service Worker wird ausschließlich im Produktionsmodus registriert.
 
@@ -46,11 +46,11 @@ Die lokale Datenbank heißt `inner-compass`; das aktuelle Dexie-Datenbankschema 
 | --- | --- |
 | `AppSettings` | Rhythmus, Fokusstandard, Theme, Töne, Haptik, gemerkte Bewegungsarten und ein optionales aktives Identitätsprofil; das alte Ankerfeld bleibt nur importkompatibel |
 | `OnboardingState` | Fortschritt und Abschluss des Onboardings |
-| `DailyPlan` | lokaler Kalendertag, Tageszustand und Referenzen auf die geordneten Aufgaben |
-| `DailyTask` | Haupt- und dynamische Aufgaben mit Tagesabschnitt, optionaler Uhrzeit und stabilem Status |
-| `Routine` | wiederkehrende Vorlage mit Wochentagen, Tagesabschnitt, optionaler Uhrzeit und Schritten |
-| `RoutineInstance` | unabhängige Momentaufnahme einer Routine für genau einen lokalen Tag |
-| `WeeklyPlan` | Wochenfokus, bis zu drei Ergebnisse und Aufgabenparkplatz |
+| `DailyPlan` | lokaler Kalendertag, optionale Orientierung, geordnete Planblöcke und Aufgabenreferenzen |
+| `DailyTask` | Checklistenpunkt mit Blockzuordnung, Reihenfolge und stabilem Abschlussstatus |
+| `Routine` | importkompatible frühere Routinenvorlage; nicht Teil der reduzierten Today-Oberfläche |
+| `RoutineInstance` | importkompatible frühere Routinen-Momentaufnahme |
+| `WeeklyPlan` | importkompatibler früherer Wochenplan; nicht Teil der reduzierten Today-Oberfläche |
 | `FocusSession` | Ziel, erwartetes Ergebnis, persistenter Timer und Abschluss |
 | `MeditationSession` | Dauer, Fokus, Zeitpunkte und wertungsfreie Rückmeldung |
 | `ResetSession` | kurze Einordnung, körperliche Option und Rückkehrhandlung |
@@ -65,13 +65,11 @@ Das Identitätsprofil liegt additiv im nicht indizierten Einstellungsdatensatz u
 
 ## Planermodell
 
-Der Planer verwendet für Tagesaufgaben und Routinen dieselben drei fachlichen Abschnitte `morning`, `day` und `evening`. Eine optionale lokale Uhrzeit sortiert Einträge innerhalb eines Abschnitts und dient als weicher Startanker; sie ist kein Alarm und erzeugt keine Benachrichtigung.
+Ein `DailyPlan` besitzt optional eine kurze Aufmerksamkeitsintention und eine Fokusnotiz. Seine geordnete Liste `plannerBlocks` enthält stabile Block-IDs, Titel und optional einen knappen Hinweis. Die Standardvorlage erzeugt sechs unabhängige Blöcke für Morgen, Organisation, Business, Sport, Bonus für den Abend und Abend. Das Laden der Vorlage ist idempotent: Ein bereits vorbereiteter Tag wird nicht unbemerkt überschrieben.
 
-Ein `DailyPlan` behält genau eine optionale Hauptaufgabe und eine geordnete Liste weiterer Aufgabenreferenzen. Für diese Liste gilt domainseitig eine Obergrenze von 30. `DailyTask` unterscheidet die Zustände `open`, `completed`, `skipped` und `deferred` und speichert die jeweils relevanten Zeitpunkte. Beim Verschieben wird der Ursprung als `deferred` markiert und genau für den nächsten lokalen Kalendertag eine neue, über ihre Herkunft nachvollziehbare Aufgabe angelegt. Wiederholtes Auslösen darf kein zweites Ziel erzeugen.
+Jeder Checklistenpunkt bleibt ein `DailyTask`. `plannerBlockId` ordnet ihn genau einem Block zu; die geordnete Aufgabenreferenzliste des Plans bestimmt die Reihenfolge. Drag-and-drop verändert ausschließlich Blockzuordnung und Reihenfolge. Abschluss und Wiederöffnen verwenden weiterhin die stabilen Status- und Zeitstempelfelder. Für einen Tagesplan gilt domainseitig eine Obergrenze von 31 Checklistenpunkten, die nur eine technische Sicherheitsgrenze ist.
 
-Eine `Routine` ist eine bearbeitbare Vorlage. Der Produktfluss und der App-Store begrenzen sie auf ein bis sechs Schritte, ausgewählte Wochentage, genau einen Tagesabschnitt und eine optionale Uhrzeit. Für jeden passenden Tag wird höchstens eine `RoutineInstance` materialisiert. Sie übernimmt Titel, Abschnitt, Uhrzeit und Schritte als Momentaufnahme. Dadurch verändern spätere Vorlagenänderungen nur künftig neu erzeugte Instanzen; Löschen oder Pausieren einer Vorlage schreibt protokollierte Tage nicht um. Instanzen können schrittweise erledigt oder für den Tag bewusst ausgelassen werden.
-
-Ein `WeeklyPlan` gehört über Wochenstart und Zeitzone zu genau einer lokalen Woche. Er enthält einen optionalen Fokus, höchstens drei Ergebnisse und bis zu 30 geparkte Aufgaben als technische Obergrenze. Eine geparkte Aufgabe wird erst nach bewusster Datumsauswahl als zugehörige Tagesaufgabe angelegt und im Wochenplan als eingeplant markiert. Es gibt keine automatische Verteilung.
+Alte Tagespläne ohne `plannerBlocks` bleiben lesbar. Beim Normalisieren werden ihre bisherigen Abschnitte `morning`, `day` und `evening` in kompatible Blöcke abgebildet; ihre Inhalte gehen beim Öffnen, Exportieren oder erneuten Speichern nicht verloren. Die Collections für frühere Routinen und Wochenpläne bleiben aus demselben Grund im Schema und Datentransfer erhalten, erscheinen aber nicht mehr als eigene Today-Tabs.
 
 ## Lokale Tagesgrenzen und Zeitzonen
 
@@ -183,7 +181,7 @@ Semantische Überschriften, Labels und Statusmeldungen bilden die Grundlage. All
 - **Repository-Abstraktion statt direkter Dexie-Nutzung in Komponenten:** etwas mehr Struktur, aber testbar und später austauschbar.
 - **Zeitpunkte statt State-Countdown:** etwas komplexeres Modell, dafür robust bei Reload und Browser-Drosselung.
 - **Einfache Häufigkeiten statt „Insights“-Engine:** weniger spektakulär, dafür nachvollziehbar und ohne diagnostische Scheingenauigkeit.
-- **Unabhängige Tagesinstanzen statt rückwirkender Vorlagenbindung:** etwas mehr gespeicherte Daten, dafür bleibt die Vergangenheit stabil und nachvollziehbar.
-- **Bewusste Wochenzuordnung statt automatischer Verteilung:** ein zusätzlicher Tap, dafür entscheidet der Nutzer selbst, was wirklich in einen Tag gehört.
-- **Optionale Uhrzeit statt Reminder:** nützliche Reihenfolge und Orientierung, ohne unzuverlässige PWA-Alarme oder Benachrichtigungsdruck.
+- **Tageskopie statt rückwirkender Vorlagenbindung:** etwas mehr gespeicherte Daten, dafür bleibt jeder vorbereitete Tag stabil und nachvollziehbar.
+- **Drag-and-drop statt separater Kategorieformulare:** direkte sichtbare Ordnung mit wenig Tipparbeit; zugängliche Verschiebegriffe bleiben per Tastatur bedienbar.
+- **Geordnete Blöcke statt Uhrzeiten und Reminder:** nützliche Reihenfolge und Orientierung, ohne unzuverlässige PWA-Alarme oder Benachrichtigungsdruck.
 - **Manueller Service Worker statt Wrapper:** kleine sichtbare Cache-Logik, dafür bewusste Versionspflege.

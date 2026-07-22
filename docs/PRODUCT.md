@@ -25,17 +25,17 @@ Der MVP richtet sich an einen erwachsenen, stark interessengeleiteten Menschen, 
 
 Jeder Flow endet möglichst bei einer konkreten Handlung. Die Leitfrage ist nicht „Warum bin ich so?“, sondern „Was ist jetzt der kleinste sinnvolle Schritt?“
 
-### Wenige bewusste Zusagen
+### Ein sichtbarer Tagesablauf
 
-Der Tageskern beginnt mit höchstens einer Hauptaufgabe, zwei unterstützenden Aufgaben, einer körperlichen Aktivität, einer Meditation und einer mutigen oder unangenehmen Handlung. Im Planer können weitere konkrete Aufgaben nach Tagesabschnitt ergänzt werden, ohne dadurch zu neuen Hauptprioritäten zu werden. Die Domäne begrenzt diese dynamischen Aufgaben als Sicherheitsgrenze auf 30 pro Tagesplan; diese Zahl ist kein Ziel. Vollständigkeit ist kein Produktziel.
+Der Tagesplan ist eine einzige geordnete Checkliste. Eine Vorlage gibt sechs alltagstaugliche Blöcke vor, ohne für Fokus, Bewegung, Meditation oder Routinen jeweils eigene Formulare zu verlangen. Aufgaben lassen sich direkt ergänzen, abhaken und per Drag-and-drop in die passende Reihenfolge bringen. Vollständigkeit ist kein Produktziel.
 
 ### Struktur ohne Strafe
 
-Es gibt keine Punkte, Rankings, Leistungsnoten, zerstörten Streaks oder roten Warnungen für ausgelassene Routinen. Fortschritt wird als neutrale Kontinuität gezeigt, etwa „An vier der letzten sieben Tage hast du bewusst geplant.“
+Es gibt keine Punkte, Rankings, Leistungsnoten, zerstörten Streaks oder rote Warnungen für offene Checklistenpunkte. Fortschritt wird als neutrale Kontinuität gezeigt, etwa „An vier der letzten sieben Tage hast du bewusst geplant.“
 
 ### Identität durch beobachtbare Belege
 
-Eine glaubwürdige, verhaltensnahe Ausrichtung verbindet Selbstbild und Handlung, etwa „Ich beginne klein und kehre ruhig zurück.“ Sie ist kein positives Etikett und kein Erfolgsversprechen. Tagesplanung, Fokus, Bewegung, Meditation, mutige Handlungen und Routinen erzeugen automatisch ruhige Belege aus ohnehin vorhandenen Daten. Offene oder ausgelassene Punkte werden nie als Gegenbeweis gewertet. Eine 21-Tage-Anzeige ist lediglich ein freiwilliger Review-Rahmen ohne Streak oder Behauptung, Veränderung sei danach abgeschlossen. Eine reine Änderung der kleinen Rückkehrhandlung erhält den Rahmen; ein materiell neuer Identitätssatz beginnt bewusst einen neuen Zeitraum, damit frühere Belege nicht rückwirkend umgedeutet werden.
+Eine glaubwürdige, verhaltensnahe Ausrichtung verbindet Selbstbild und Handlung, etwa „Ich beginne klein und kehre ruhig zurück.“ Sie ist kein positives Etikett und kein Erfolgsversprechen. Abgehakte Punkte des Tagesplans, Fokusblöcke und Meditationen erzeugen automatisch ruhige Belege aus ohnehin vorhandenen Daten. Offene Punkte werden nie als Gegenbeweis gewertet. Eine 21-Tage-Anzeige ist lediglich ein freiwilliger Review-Rahmen ohne Streak oder Behauptung, Veränderung sei danach abgeschlossen. Eine reine Änderung der kleinen Rückkehrhandlung erhält den Rahmen; ein materiell neuer Identitätssatz beginnt bewusst einen neuen Zeitraum, damit frühere Belege nicht rückwirkend umgedeutet werden.
 
 ### Körper und Geist gemeinsam betrachten
 
@@ -53,7 +53,7 @@ Die Oberfläche ist mobile-first, kontrastreich und tastaturbedienbar. Große To
 
 Die Hauptnavigation bleibt bei fünf Bereichen:
 
-1. **Heute** – mit den Tabs Tag, Routinen und Woche für Planung und Ausführung
+1. **Heute** – eine geordnete, direkt ausführbare Checkliste für den gewählten Tag
 2. **Fokus** – Ergebnis definieren, Timer starten, zurückkehren und abschließen
 3. **Reset** – Gedankenschleife in Handlung oder bewusstes Loslassen übersetzen
 4. **Reflexion** – Tagesabschlüsse, Wochenreview und vorsichtige Muster
@@ -69,17 +69,13 @@ Vier kurze Schritte erklären den Zweck, erfassen optionale Tageszeiten, wählen
 
 ### Heute
 
-Der wichtigste Screen trennt Vorbereitung und Ausführung. Ein prominenter Einstieg plant den Folgetag idealerweise am Vorabend; beim Öffnen am nächsten Morgen erscheint dieser Plan direkt. Hauptaufgabe und nächster sichtbarer Schritt werden ohne zusätzliches Formular zum konkreten Beleg der gewählten Identität. Eine kurze mentale Probe bleibt freiwillig. Eine Datumsleiste macht weitere Kalendertage erreichbar. Nach dem Speichern wechselt der Tageskern in eine reduzierte Ausführungsansicht. Hauptaufgabe, eine anfangs auf zwei Felder begrenzte, aber erweiterbare Liste zusätzlicher Aufgaben und Routinen erscheinen in den Abschnitten Morgen, Tag und Abend. Bewegung lässt sich aus gemerkten Kategorien wählen oder als neue Kategorie ergänzen. Meditation und mutige Handlung können ebenfalls im Voraus geplant werden. Eine optionale Uhrzeit dient nur als weicher Startanker. Zukünftige Pläne sind noch nicht abhakbar; Aufgaben am aktuellen Tag bleiben ohne Punkte oder Konfetti erledigbar. Ein ungeplanter Tag erhält eine neutrale Einladung, eine Sache zu wählen.
+Der wichtigste Screen ist zugleich Vorbereitung und Ausführung. Am Abend wird der Folgetag mit einem Tap aus einer persönlichen Standardvorlage vorbereitet; beim Öffnen am nächsten Morgen steht derselbe Plan direkt bereit. Die Überschrift nennt immer das konkrete Datum. Darunter stehen eine kurze Aufmerksamkeitsintention und die Frage „Was ist heute nützlich und sauber?“ als optionale Orientierung, nicht als Pflichtformular.
 
-### Planer: Aufgaben, Routinen und Woche
+Die Vorlage enthält sechs geordnete Blöcke: Morgen, Organisation, Business, Sport, Bonus für den Abend und Abend. Jeder Block enthält einfache Checklistenpunkte. Aufgaben lassen sich direkt ergänzen, löschen, abhaken, wieder öffnen und innerhalb eines Blocks oder zwischen Blöcken per Drag-and-drop verschieben. Reihenfolge und Erledigungsstand bleiben lokal gespeichert. Die Oberfläche verlangt weder Haupt- und Nebenaufgaben noch gesonderte Eingaben für Bewegung, Meditation, Mut, Uhrzeiten, Routinen oder Wochenplanung.
 
-Die drei Today-Tabs trennen verschiedene Planungsebenen, ohne neue Hauptnavigation einzuführen:
+### Tagesvorlage
 
-- **Tag** zeigt genau den gewählten Kalendertag. Zusätzliche Aufgaben lassen sich einem Tagesabschnitt und optional einer Uhrzeit zuordnen. Jede Aufgabe kann erledigt, bewusst ausgelassen, wieder geöffnet oder auf den nächsten Kalendertag verschoben werden.
-- **Routinen** verwaltet wiederkehrende Vorlagen mit einem bis sechs Schritten, ausgewählten Wochentagen, einem festen Tagesabschnitt und einer optionalen Uhrzeit. Die Uhrzeit löst keine Erinnerung aus.
-- **Woche** hält einen optionalen Wochenfokus, bis zu drei Ergebnisse und einen Aufgabenparkplatz bereit. Ein geparkter Punkt erscheint erst dann im Tagesplan, wenn er bewusst einem Datum zugeordnet wurde.
-
-Für jeden passenden Tag entsteht eine eigenständige Routineinstanz als Momentaufnahme der Vorlage. Änderungen an einer Vorlage gelten für künftig neu erzeugte Instanzen; bereits protokollierte Tage werden nicht umgeschrieben. Auch das bewusste Auslassen einer Routine bleibt ein neutraler Zustand. Der Planer verwendet weder Streaks noch Reminder, automatische Tagesverteilung oder Strafmechaniken.
+„Tag aus Vorlage vorbereiten“ erzeugt nur für den ausgewählten, noch leeren Tag eine unabhängige Kopie. Spätere Änderungen an diesem Tag schreiben andere Tage nicht um. Die Vorlage darf als hilfreicher Ausgangspunkt umfangreich sein; der Nutzer kann Unnötiges löschen und zusätzliche Punkte ergänzen. Der Planer verwendet weder Streaks, Reminder, automatische Bewertung noch Strafmechaniken.
 
 ### Fokus und Starthelfer
 
@@ -101,7 +97,7 @@ Ein schlichter Timer unterstützt 5, 10, 20 oder bis zu 60 benutzerdefinierte Mi
 
 Das Wochenreview ist überspringbar und in ungefähr zehn Minuten machbar. Es erzeugt eine kompakte Wochenkarte aus Ziel, drei Ergebnissen, Bewegung, Meditationsintention und bewusstem Weglassen.
 
-Das Wochenreview bleibt von der direkten Wochenplanung im Today-Tab getrennt: Der Planer organisiert kommende Aufgaben, während das Review rückblickend verdichtet.
+Das Wochenreview bleibt vom Tagesplan getrennt und verdichtet ausschließlich den Rückblick.
 
 Der Bereich „Identität“ zeigt den aktiven Arbeitssatz und automatisch abgeleitete, beobachtbare Belege. Ein optionaler Glaubenssatz-Check stellt vier rationale Prüffragen und speichert nur die bewusst formulierte Neurahmung. Die App macht daraus keine Diagnose, Quote oder Bewertung. Der Tagesabschluss kann höchstens einen zusätzlichen persönlichen Beleg aufnehmen, falls etwas Wichtiges nicht automatisch erkannt wurde.
 
@@ -116,9 +112,7 @@ Einstellungen enthalten Identitäts-Kompass, Rhythmus, Fokusdauer, Theme, option
 Die Standardansicht zeigt höchstens eine ruhige Wochenübersicht. Zulässige Beobachtungen sind beispielsweise:
 
 - Tage mit bewusster Planung;
-- begonnene und abgeschlossene Hauptaufgaben;
-- erledigte Aufgaben und Routineschritte sowie bewusst ausgelassene oder verschobene Einträge ohne negative Wertung;
-- geplante und erledigte Wochenaufgaben;
+- erledigte Checklistenpunkte, ohne offene Punkte negativ zu werten;
 - Fokusblöcke und Fokuszeit;
 - Meditationstage und -minuten;
 - Bewegung, Wochenreviews und Reset-Rückkehrhandlungen.
@@ -149,6 +143,6 @@ Auch Aussagen wie „Imagination ist für das Nervensystem identisch mit Realit�
 - umfassendes Ernährungs-, Schlaf- oder Substanztracking
 - komplexe Ziele, Stimmungskurven mit falscher Präzision und Produktivitäts-Score
 - Routine-Streaks, Routine-Reminder und automatische Tageszuordnung
-- komplexe Wiederholungsregeln, verschachtelte Routinen und ein minutengenaues Kalender-Zeitraster
+- ein eigener Routinen- oder Wochenplaner, komplexe Wiederholungsregeln und ein minutengenaues Kalender-Zeitraster
 
 Diese Grenzen schützen Einfachheit, Datenschutz und die niedrige Nutzungshürde.

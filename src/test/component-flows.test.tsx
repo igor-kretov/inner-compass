@@ -1,5 +1,6 @@
-import { cleanup, screen, within } from "@testing-library/react";
+import { act, cleanup, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import FocusPage from "@/app/(main)/focus/page";
@@ -14,10 +15,9 @@ import {
   shiftLocalDate,
   type AppState,
   type DailyPlan,
-  type RoutineInstance,
-  type RoutineTemplate,
 } from "@/lib/app-store";
 import { createDataExport, serializeDataExport } from "@/lib/data-transfer";
+import { formatPlanDate, SIMPLE_DAY_PLAN_TEMPLATE } from "@/lib/simple-day-plan";
 import { makeAppState, renderWithAppStore } from "@/test/render-app";
 
 const navigation = vi.hoisted(() => ({
@@ -84,53 +84,18 @@ function withIdentity(state: AppState = makeAppState()): AppState {
   };
 }
 
-function stateWithTodaysRoutine() {
-  const timestamp = "2026-07-20T08:00:00.000Z";
-  const date = localDateKey();
-  const weekday = new Date(`${date}T12:00:00`).getDay();
-  const routine: RoutineTemplate = {
-    id: "44444444-4444-4444-8444-444444444444",
-    title: "Morgenstart",
-    section: "morning",
-    time: "07:15",
-    weekdays: [weekday],
-    steps: [
-      { id: "55555555-5555-4555-8555-555555555555", title: "Wasser trinken" },
-      { id: "66666666-6666-4666-8666-666666666666", title: "Kurz bewegen" },
-    ],
-    enabled: true,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    schemaVersion: 1,
-  };
-  const instance: RoutineInstance = {
-    id: "77777777-7777-4777-8777-777777777777",
-    routineId: routine.id,
-    date,
-    title: routine.title,
-    section: routine.section,
-    time: routine.time,
-    status: "active",
-    steps: [
-      {
-        id: "88888888-8888-4888-8888-888888888888",
-        sourceStepId: routine.steps[0].id,
-        title: routine.steps[0].title,
-        completed: false,
-      },
-      {
-        id: "99999999-9999-4999-8999-999999999999",
-        sourceStepId: routine.steps[1].id,
-        title: routine.steps[1].title,
-        completed: false,
-      },
-    ],
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    schemaVersion: 1,
-  };
-
-  return plannedState({ routines: [routine], routineInstances: [instance] });
+function ResetPlannerHarness() {
+  const [showPlanner, setShowPlanner] = useState(false);
+  return showPlanner ? (
+    <TodayPage />
+  ) : (
+    <>
+      <ResetPage />
+      <button type="button" onClick={() => setShowPlanner(true)}>
+        Tagesplan öffnen
+      </button>
+    </>
+  );
 }
 
 beforeEach(() => {
@@ -147,236 +112,83 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("Tagesplanung und Aufgabenabschluss", () => {
-  it("speichert einen bewusst geplanten Tag und zeigt die reduzierte Ansicht", async () => {
+describe("Einfacher Block-Tagesplan", () => {
+  it("bereitet den gewählten Tag aus der Vorlage vor und zeigt nur die sechs Blöcke", async () => {
     const user = userEvent.setup();
     await renderWithAppStore(<TodayPage />);
 
-    await user.type(
-      screen.getByRole("textbox", { name: /Hauptaufgabe/ }),
-      "Präsentation abschließen",
-    );
-    await user.type(
-      screen.getByRole("textbox", { name: /Nächster konkreter Schritt/ }),
-      "Folie eins öffnen",
-    );
-    await user.type(
-      screen.getByRole("textbox", { name: "Nebenaufgabe 1" }),
-      "Termin bestätigen",
-    );
-    await user.click(screen.getByRole("radio", { name: "Fitness" }));
-    await user.click(screen.getByRole("button", { name: "Tag speichern" }));
-
-    const mainTaskHeading = screen.getByRole("heading", {
-      name: "Präsentation abschließen",
-    });
-    expect(mainTaskHeading).toBeInTheDocument();
-    expect(mainTaskHeading.parentElement).toHaveTextContent(
-      "Nächster Schritt: Folie eins öffnen",
-    );
+    const now = new Date();
+    const expectedDate = now.getHours() >= 17
+      ? shiftLocalDate(localDateKey(now), 1)
+      : localDateKey(now);
     expect(
-      screen.getByRole("checkbox", { name: /Termin bestätigen/ }),
-    ).not.toBeChecked();
-    expect(screen.getByRole("checkbox", { name: /^Fitness/ })).not.toBeChecked();
+      screen.getByRole("heading", { name: `Plan für ${formatPlanDate(expectedDate)}` }),
+    ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Bearbeiten" }));
-    expect(screen.getByRole("textbox", { name: /Hauptaufgabe/ })).toHaveValue(
-      "Präsentation abschließen",
-    );
+    await user.click(screen.getByRole("button", { name: "Tag aus Vorlage vorbereiten" }));
+
+    for (const block of SIMPLE_DAY_PLAN_TEMPLATE) {
+      expect(screen.getByRole("heading", { name: block.title })).toBeInTheDocument();
+    }
+    expect(screen.getByText("kein Handy bis fertig")).toBeInTheDocument();
+    expect(screen.getByText(/Pay attention how often/)).toBeInTheDocument();
+    expect(screen.getByText("Was ist heute nützlich und sauber? (Fokus)")).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: /Hauptaufgabe|Nebenaufgabe|Bewegungsart/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Planerbereiche" })).not.toBeInTheDocument();
   });
 
-  it("plant morgen im Voraus und lässt den vorbereiteten Plan noch nicht abhaken", async () => {
+  it("ergänzt und hakt einen Checklistenpunkt direkt im gewählten Block ab", async () => {
     const user = userEvent.setup();
     await renderWithAppStore(<TodayPage />);
+    await user.click(screen.getByRole("button", { name: "Tag aus Vorlage vorbereiten" }));
 
-    await user.click(screen.getByRole("button", { name: "Morgen planen" }));
-    expect(screen.getByText(/Planungsmodus/)).toBeInTheDocument();
-    expect(screen.queryByText("Energie")).not.toBeInTheDocument();
-    expect(screen.queryByText("Mentale Unruhe")).not.toBeInTheDocument();
-
+    await user.click(
+      screen.getByRole("button", { name: "Aufgabe zu Business Block hinzufügen" }),
+    );
     await user.type(
-      screen.getByRole("textbox", { name: /Hauptaufgabe/ }),
-      "Morgenangebot abschließen",
+      screen.getByRole("textbox", { name: "Neue Aufgabe in Business Block" }),
+      "Kundin anrufen",
     );
-    await user.click(screen.getByRole("button", { name: "Plan für morgen speichern" }));
-
-    expect(screen.getByRole("heading", { name: "Morgenangebot abschließen" })).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: "Hauptaufgabe abschließen" })).toBeDisabled();
-  });
-
-  it("speichert mehr als zwei Nebenaufgaben und merkt sich eine eigene Bewegungsart", async () => {
-    const user = userEvent.setup();
-    await renderWithAppStore(<TodayPage />);
-
-    await user.type(screen.getByRole("textbox", { name: /Hauptaufgabe/ }), "Tageskern");
-    await user.type(screen.getByRole("textbox", { name: "Nebenaufgabe 1" }), "Erste Hilfe");
-    await user.type(screen.getByRole("textbox", { name: "Nebenaufgabe 2" }), "Zweite Hilfe");
-    await user.click(screen.getByRole("button", { name: "Weitere Nebenaufgabe" }));
-    await user.type(screen.getByRole("textbox", { name: "Nebenaufgabe 3" }), "Dritte Hilfe");
-    await user.type(screen.getByRole("textbox", { name: "Eigene Bewegungsart" }), "Schwimmen");
-    await user.click(screen.getByRole("button", { name: "Tag speichern" }));
-
-    expect(screen.getByRole("checkbox", { name: "Erste Hilfe" })).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: "Zweite Hilfe" })).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: "Dritte Hilfe" })).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Bearbeiten" }));
-    expect(screen.getByRole("radio", { name: "Schwimmen" })).toBeChecked();
-  });
-
-  it("schließt Haupt- und Nebenaufgaben ohne Gamification ab", async () => {
-    const user = userEvent.setup();
-    await renderWithAppStore(<TodayPage />, plannedState());
-
-    const mainTask = screen.getByRole("checkbox", {
-      name: "Hauptaufgabe abschließen",
-    });
-    const secondaryTask = screen.getByRole("checkbox", {
-      name: /Rückruf erledigen/,
-    });
-
-    await user.click(mainTask);
-    await user.click(secondaryTask);
-
-    expect(mainTask).toBeChecked();
-    expect(secondaryTask).toBeChecked();
-    expect(screen.getByRole("button", { name: "Erledigt" })).toBeDisabled();
-    expect(screen.queryByText(/Punkte|Streak|versagt/i)).not.toBeInTheDocument();
-  });
-});
-
-describe("Tages-, Routinen- und Wochenplaner", () => {
-  it("wechselt über die zugänglichen Tabs zwischen Tag, Routinen und Woche", async () => {
-    const user = userEvent.setup();
-    await renderWithAppStore(<TodayPage />);
-
-    const tabs = screen.getByRole("navigation", { name: "Planerbereiche" });
-    const dayTab = within(tabs).getByRole("button", { name: "Tag" });
-    const routinesTab = within(tabs).getByRole("button", { name: "Routinen" });
-    const weekTab = within(tabs).getByRole("button", { name: "Woche" });
-
-    expect(dayTab).toHaveAttribute("aria-current", "page");
-    await user.click(routinesTab);
-    expect(routinesTab).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("heading", { name: "Routinen geben dem Tag Halt." })).toBeInTheDocument();
-
-    await user.click(weekTab);
-    expect(weekTab).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("heading", { name: "Richtung vor Dichte." })).toBeInTheDocument();
-
-    await user.click(dayTab);
-    expect(dayTab).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("group", { name: "Tag auswählen" })).toBeInTheDocument();
-  });
-
-  it("legt eine Routine mit Wochentagen, optionaler Uhrzeit und mehreren Schritten an", async () => {
-    const user = userEvent.setup();
-    await renderWithAppStore(<TodayPage />);
-
-    await user.click(screen.getByRole("button", { name: "Routinen" }));
-    await user.click(screen.getByRole("button", { name: "Neue Routine" }));
-    await user.type(screen.getByRole("textbox", { name: "Name der Routine" }), "Morgenstart");
-    await user.type(screen.getByLabelText("Uhrzeit"), "07:15");
-
-    const saturday = screen.getByRole("button", { name: "Samstag" });
-    expect(saturday).toHaveAttribute("aria-pressed", "false");
-    await user.click(saturday);
-    expect(saturday).toHaveAttribute("aria-pressed", "true");
-
-    await user.type(screen.getByRole("textbox", { name: "Schritt 1" }), "Wasser trinken");
-    await user.click(screen.getByRole("button", { name: "Schritt hinzufügen" }));
-    await user.type(screen.getByRole("textbox", { name: "Schritt 2" }), "Kurz bewegen");
-    await user.click(screen.getByRole("button", { name: "Routine speichern" }));
-
-    expect(screen.getByRole("heading", { name: "Morgenstart" })).toBeInTheDocument();
-    expect(screen.getByText(/07:15.*Sa/)).toBeInTheDocument();
-    expect(screen.getByText("Wasser trinken")).toBeInTheDocument();
-    expect(screen.getByText("Kurz bewegen")).toBeInTheDocument();
-  });
-
-  it("hakt einen Routine-Schritt ab und lässt das heutige Vorkommen bewusst aus", async () => {
-    const user = userEvent.setup();
-    await renderWithAppStore(<TodayPage />, stateWithTodaysRoutine());
-
-    const waterStep = screen.getByRole("checkbox", {
-      name: "Wasser trinken in Morgenstart",
-    });
-    expect(waterStep).not.toBeChecked();
-    expect(screen.getByText("0 von 2 Schritten")).toBeInTheDocument();
-
-    await user.click(waterStep);
-    expect(waterStep).toBeChecked();
-    expect(screen.getByText("1 von 2 Schritten")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Heute auslassen" }));
-    expect(screen.getByText("Heute bewusst ausgelassen")).toBeInTheDocument();
-    expect(waterStep).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Wieder aufnehmen" })).toBeInTheDocument();
-  });
-
-  it("legt eine Aufgabe mit Tagesabschnitt und Uhrzeit an und verschiebt sie auf morgen", async () => {
-    const user = userEvent.setup();
-    await renderWithAppStore(<TodayPage />, plannedState());
-
-    await user.click(screen.getByRole("button", { name: "Aufgabe hinzufügen" }));
-    await user.type(screen.getByRole("textbox", { name: "Neue Aufgabe" }), "Rechnung senden");
-    await user.click(screen.getByRole("radio", { name: "Abend" }));
-    await user.type(screen.getByLabelText("Uhrzeit"), "18:45");
     await user.click(screen.getByRole("button", { name: "Hinzufügen" }));
 
-    const eveningSection = screen.getByRole("heading", { name: "Abend" }).closest("section");
-    expect(eveningSection).not.toBeNull();
-    expect(within(eveningSection as HTMLElement).getByRole("checkbox", { name: "Rechnung senden" })).not.toBeChecked();
-    expect(eveningSection).toHaveTextContent("18:45");
-
-    await user.click(screen.getByRole("button", { name: "Optionen für Rechnung senden" }));
-    await user.click(screen.getByRole("button", { name: /^Auf .* verschieben$/ }));
-    expect(eveningSection).toHaveTextContent("verschoben");
-
-    const tomorrow = shiftLocalDate(localDateKey(), 1);
-    const tomorrowLabel = new Intl.DateTimeFormat("de-CH", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-    }).format(new Date(`${tomorrow}T12:00:00`));
-    if (!screen.queryByRole("button", { name: tomorrowLabel })) {
-      await user.click(screen.getByRole("button", { name: "Nächste Woche" }));
-    }
-    await user.click(screen.getByRole("button", { name: tomorrowLabel }));
-
-    expect(screen.getByRole("heading", { name: "Rechnung senden" })).toBeInTheDocument();
-    expect(screen.getByText("Startanker · 18:45")).toBeInTheDocument();
+    const task = screen.getByRole("checkbox", { name: /Kundin anrufen.*abhaken/ });
+    expect(task).not.toBeChecked();
+    await user.click(task);
+    expect(task).toBeChecked();
+    expect(task).toHaveAccessibleName(/Kundin anrufen.*wieder öffnen/);
+    expect(screen.queryByText(/Punkte|Streak|versagt/i)).not.toBeInTheDocument();
   });
 
-  it("speichert einen Wochenplan und ordnet eine Wochenaufgabe einem Tag zu", async () => {
-    const user = userEvent.setup();
+  it("wechselt um 17 Uhr automatisch auf morgen, aber respektiert danach die eigene Auswahl", async () => {
+    vi.useFakeTimers({ toFake: ["Date", "setInterval", "clearInterval"] });
+    vi.setSystemTime(new Date(2026, 6, 21, 16, 59, 30));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     await renderWithAppStore(<TodayPage />);
 
-    await user.click(screen.getByRole("button", { name: "Woche" }));
-    await user.type(screen.getByRole("textbox", { name: "Wichtigster Fokus" }), "Website veröffentlichen");
-    await user.type(screen.getByRole("textbox", { name: "Wochenergebnis 1" }), "Texte freigeben");
-    await user.type(screen.getByRole("textbox", { name: "Wochenaufgabe 1" }), "Team-Freigabe einholen");
-    await user.click(screen.getByRole("button", { name: "Wochenplan speichern" }));
-
-    expect(screen.getByRole("heading", { name: "Website veröffentlichen" })).toBeInTheDocument();
-    expect(screen.getByText("Texte freigeben")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Einplanen" }));
-
-    const scheduleDialog = screen.getByRole("dialog", { name: "Welcher Tag passt?" });
-    await user.click(within(scheduleDialog).getByRole("button", { name: /Heute/ }));
-    expect(screen.getByText(/Eingeplant für/)).toBeInTheDocument();
-
-    const scheduledItem = screen.getByRole("checkbox", {
-      name: "Team-Freigabe einholen als Wochenaufgabe erledigt",
+    expect(screen.getByRole("heading", { name: "Plan für 21.07.2026" })).toBeInTheDocument();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
     });
-    await user.click(
-      within(scheduledItem.parentElement as HTMLElement).getByRole("button", {
-        name: "Tag öffnen",
-      }),
-    );
-    const tabs = screen.getByRole("navigation", { name: "Planerbereiche" });
-    expect(within(tabs).getByRole("button", { name: "Tag" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("heading", { name: "Team-Freigabe einholen" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Plan für 22.07.2026" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Heute" }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    expect(screen.getByRole("heading", { name: "Plan für 21.07.2026" })).toBeInTheDocument();
+  });
+
+  it("folgt nach einer längeren Pause dem neuen Kalendertag, solange kein Datum gewählt wurde", async () => {
+    vi.useFakeTimers({ toFake: ["Date", "setInterval", "clearInterval"] });
+    vi.setSystemTime(new Date(2026, 6, 21, 16, 0, 0));
+    await renderWithAppStore(<TodayPage />);
+    expect(screen.getByRole("heading", { name: "Plan für 21.07.2026" })).toBeInTheDocument();
+
+    act(() => {
+      vi.setSystemTime(new Date(2026, 6, 22, 10, 0, 0));
+      window.dispatchEvent(new Event("focus"));
+    });
+    expect(screen.getByRole("heading", { name: "Plan für 22.07.2026" })).toBeInTheDocument();
   });
 });
 
@@ -500,6 +312,43 @@ describe("Reset-Flow", () => {
       "Diese App kann dich in einer akuten Krise nicht ausreichend unterstützen.",
     );
     expect(screen.getByRole("button", { name: "Weiter" })).toBeDisabled();
+  });
+
+  it("legt eine verantwortliche Handlung auch in einem vollen alten Tageskern sichtbar ab", async () => {
+    navigation.pathname = "/reset";
+    const state = plannedState();
+    state.plans[0].secondaryTasks.push({
+      id: "44444444-4444-4444-8444-444444444444",
+      title: "Zweiter alter Nebenpunkt",
+      completed: false,
+    });
+    const user = userEvent.setup();
+    await renderWithAppStore(<ResetPlannerHarness />, state);
+
+    await user.click(screen.getByRole("button", { name: "Reset beginnen" }));
+    await user.type(screen.getByRole("textbox", { name: "Kurz benennen" }), "Die Unterlagen kreisen im Kopf");
+    await user.click(screen.getByRole("button", { name: "Weiter" }));
+    await user.click(screen.getByRole("radio", { name: "Ein reales Problem" }));
+    await user.click(screen.getByRole("button", { name: "Weiter" }));
+    await user.click(screen.getByRole("radio", { name: "Ja" }));
+    await user.type(
+      screen.getByRole("textbox", { name: "Was ist die kleinste verantwortliche Handlung?" }),
+      "RAV-Dokument öffnen",
+    );
+    await user.click(screen.getByRole("checkbox", { name: "Als Tagesaufgabe übernehmen" }));
+    await user.click(screen.getByRole("button", { name: "Weiter" }));
+    await user.click(screen.getByRole("radio", { name: "Wasser trinken" }));
+    await user.click(screen.getByRole("button", { name: "Weiter" }));
+    await user.click(screen.getByRole("radio", { name: "Nächste Tagesaufgabe" }));
+    await user.click(screen.getByRole("button", { name: "Zurück ins Leben" }));
+
+    await user.click(screen.getByRole("button", { name: "Tagesplan öffnen" }));
+    await user.click(screen.getByRole("button", { name: "Heute" }));
+    const dayBlock = screen.getByRole("heading", { name: "Tages Block" }).closest("section");
+    expect(dayBlock).not.toBeNull();
+    expect(within(dayBlock as HTMLElement).getByRole("checkbox", {
+      name: /RAV-Dokument öffnen.*abhaken/,
+    })).toBeInTheDocument();
   });
 });
 

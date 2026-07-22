@@ -6,7 +6,7 @@
  * caching rules change in a way that should invalidate existing entries.
  */
 
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const CACHE_PREFIX = "inner-compass";
 const SHELL_CACHE = `${CACHE_PREFIX}-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `${CACHE_PREFIX}-runtime-${CACHE_VERSION}`;

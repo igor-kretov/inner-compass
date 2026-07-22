@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { emptyState, type AppState } from "./app-store";
 import { collectIdentityEvidence, prepareIdentityProfile } from "./identity";
@@ -132,6 +132,10 @@ function identityState(): AppState {
   return state;
 }
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe("Identitätsbeweise", () => {
   it("startet nur bei einem neuen Identitätssatz einen neuen Übungszeitraum", () => {
     const current = identityState().settings.identity!;
@@ -197,6 +201,34 @@ describe("Identitätsbeweise", () => {
     const evidence = collectIdentityEvidence(state);
     expect(evidence.some((item) => item.id === "task:task-1")).toBe(false);
     expect(evidence.some((item) => item.id === "focus:linked-focus")).toBe(true);
+  });
+
+  it("wertet versehentlich vorab abgehakte Aufgaben eines zukünftigen Plans nicht als Beweis", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2025-04-10T10:00:00.000Z"));
+    const state = identityState();
+    state.plans.push({
+      ...state.plans[0],
+      id: "future-plan",
+      date: "2025-04-11",
+      mainTask: {
+        id: "future-task",
+        title: "Morgigen Punkt vorab abhaken",
+        completed: true,
+        status: "completed",
+        completedAt: "2025-04-10T10:00:00.000Z",
+      },
+      secondaryTasks: [],
+    });
+
+    const evidence = collectIdentityEvidence(state);
+    expect(evidence.some((item) => item.id === "task:future-task")).toBe(false);
+    expect(evidence.some((item) => item.id === "task:task-1")).toBe(true);
+
+    vi.setSystemTime(new Date("2025-04-11T10:00:00.000Z"));
+    expect(
+      collectIdentityEvidence(state).some((item) => item.id === "task:future-task"),
+    ).toBe(false);
   });
 
   it("ordnet eine abgeschlossene Ausrichtung als mentale Probe ein", () => {

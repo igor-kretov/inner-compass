@@ -89,6 +89,8 @@ export function collectIdentityEvidence(state: AppState): IdentityEvidence[] {
   const startedMs = new Date(startedAt).getTime();
   const timeZone = state.settings.timezone;
   const startedDate = localDateFor(startedAt, timeZone, startedAt.slice(0, 10));
+  const now = new Date().toISOString();
+  const today = localDateFor(now, timeZone, now.slice(0, 10));
   const candidates = new Map<string, EvidenceCandidate>();
 
   const add = (candidate: EvidenceCandidate) => {
@@ -111,10 +113,18 @@ export function collectIdentityEvidence(state: AppState): IdentityEvidence[] {
 
   for (const plan of state.plans) {
     const planWithinIdentity = plan.date >= startedDate;
+    const planTimeZone = plan.timezone ?? timeZone;
+    const planToday = localDateFor(now, planTimeZone, today);
     for (const task of [plan.mainTask, ...plan.secondaryTasks]) {
-      if (!taskCompleted(task)) continue;
+      if (plan.date > planToday || !taskCompleted(task)) continue;
       const occurredAt = validInstant(task.completedAt) ?? validInstant(plan.updatedAt);
       if (!occurredAt) continue;
+      const completionDate = localDateFor(
+        occurredAt,
+        planTimeZone,
+        occurredAt.slice(0, 10),
+      );
+      if (completionDate < plan.date) continue;
       add({
         id: `task:${task.id}`,
         date: plan.date,

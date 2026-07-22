@@ -17,6 +17,7 @@ const LegacyTaskSchema = z
     id: legacyId,
     title: z.string().trim().min(1).max(240),
     completed: z.boolean(),
+    plannerBlockId: legacyId.optional(),
     completedAt: timestamp.optional(),
   })
   .strict();
@@ -25,6 +26,20 @@ const LegacyDailyPlanSchema = z
   .object({
     id: legacyId,
     date: localDate,
+    intention: z.string().max(500).optional(),
+    focusNote: z.string().max(500).optional(),
+    plannerBlocks: z
+      .array(
+        z
+          .object({
+            id: legacyId,
+            title: z.string().trim().min(1).max(100),
+            note: z.string().max(240).optional(),
+          })
+          .strict(),
+      )
+      .max(20)
+      .optional(),
     energy: z.enum(["low", "medium", "high"]).optional(),
     mentalState: z.enum(["calm", "moving", "overloaded"]).optional(),
     mainTask: LegacyTaskSchema,

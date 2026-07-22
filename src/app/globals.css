@@ -507,6 +507,324 @@ hr {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+.simple-day-page {
+  display: grid;
+  width: min(100%, 44rem);
+  min-width: 0;
+  margin-inline: auto;
+  gap: 1rem;
+}
+
+.simple-date-navigation {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.simple-date-arrow,
+.simple-icon-button,
+.simple-drag-handle {
+  display: inline-grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  cursor: pointer;
+  place-items: center;
+  border: 0;
+  border-radius: 0.8rem;
+  background: transparent;
+  color: var(--ic-muted);
+}
+
+.simple-date-arrow:hover,
+.simple-icon-button:hover,
+.simple-drag-handle:hover {
+  background: var(--ic-surface-muted);
+  color: var(--ic-ink);
+}
+
+.simple-date-shortcuts {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.2rem;
+  border: 1px solid var(--ic-line);
+  border-radius: 0.85rem;
+  background: var(--ic-surface-muted);
+  padding: 0.2rem;
+}
+
+.simple-date-shortcuts button {
+  min-width: 0;
+  min-height: 2.35rem;
+  cursor: pointer;
+  border: 0;
+  border-radius: 0.65rem;
+  background: transparent;
+  color: var(--ic-muted);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.simple-date-shortcuts button[aria-pressed="true"] {
+  background: var(--ic-surface-raised);
+  color: var(--ic-ink);
+  box-shadow: 0 1px 4px rgb(var(--ic-shadow-color) / 9%);
+}
+
+.simple-day-heading {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-block: 0.4rem 0.2rem;
+}
+
+.simple-day-heading h1 {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 8vw, 2.45rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+}
+
+.simple-day-heading p:last-child:not(.eyebrow) {
+  margin: 0.35rem 0 0;
+  color: var(--ic-muted);
+  font-size: 0.8rem;
+}
+
+.simple-empty-day {
+  display: grid;
+  justify-items: start;
+  gap: 1rem;
+}
+
+.simple-empty-day p {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--ic-muted);
+}
+
+.simple-alignment {
+  display: grid;
+  min-width: 0;
+  gap: 0.75rem;
+  border-left: 3px solid var(--ic-accent-muted);
+  padding: 0.2rem 0 0.2rem 1rem;
+}
+
+.simple-alignment p {
+  overflow-wrap: anywhere;
+  margin: 0;
+  color: var(--ic-ink-soft);
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+
+.simple-alignment p:first-child {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+}
+
+.simple-alignment p:last-child {
+  color: var(--ic-accent);
+  font-weight: 680;
+}
+
+.simple-block-list {
+  display: grid;
+  min-width: 0;
+  gap: 0.8rem;
+}
+
+.simple-plan-block {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--ic-line);
+  border-radius: 1.15rem;
+  background: var(--ic-surface);
+  box-shadow: 0 1px 2px rgb(var(--ic-shadow-color) / 4%);
+}
+
+.simple-block-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.85rem 0.75rem 0.72rem 1rem;
+}
+
+.simple-block-header h2 {
+  overflow-wrap: anywhere;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 720;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+
+.simple-block-header p {
+  margin: 0.16rem 0 0;
+  color: var(--ic-muted);
+  font-size: 0.76rem;
+}
+
+.simple-task-list {
+  display: grid;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.simple-task-row {
+  display: flex;
+  min-width: 0;
+  min-height: 3.35rem;
+  align-items: center;
+  gap: 0.3rem;
+  border-top: 1px solid var(--ic-line);
+  padding: 0.32rem 0.35rem 0.32rem 0.8rem;
+  background: var(--ic-surface);
+}
+
+.simple-checkbox-wrap {
+  display: grid;
+  width: 2.25rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  cursor: pointer;
+  place-items: center;
+}
+
+.simple-checkbox {
+  width: 1.3rem;
+  height: 1.3rem;
+  cursor: pointer;
+  accent-color: var(--ic-accent);
+}
+
+.simple-task-title {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--ic-ink);
+  font-size: 0.92rem;
+  line-height: 1.38;
+  transition: color 150ms ease, opacity 150ms ease;
+}
+
+.simple-task-completed {
+  color: var(--ic-muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 0.08em;
+  opacity: 0.72;
+}
+
+.simple-drag-handle {
+  cursor: grab;
+  touch-action: none;
+}
+
+.simple-drag-handle:active {
+  cursor: grabbing;
+}
+
+.simple-dragging {
+  position: relative;
+  z-index: 5;
+  opacity: 0.35;
+}
+
+.simple-drag-overlay {
+  display: flex;
+  width: min(18rem, calc(100vw - 2rem));
+  min-width: 0;
+  align-items: center;
+  gap: 0.55rem;
+  overflow: hidden;
+  border: 1px solid var(--ic-accent-muted);
+  border-radius: 0.9rem;
+  background: var(--ic-surface-raised);
+  color: var(--ic-ink);
+  padding: 0.75rem 0.9rem;
+  box-shadow: var(--ic-shadow-floating);
+}
+
+.simple-drag-overlay span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.simple-add-button {
+  min-height: 2.75rem;
+  cursor: pointer;
+  border: 0;
+  border-top: 1px solid var(--ic-line);
+  background: transparent;
+  color: var(--ic-muted);
+  padding: 0.55rem 1rem;
+  text-align: left;
+  font-size: 0.82rem;
+  font-weight: 680;
+}
+
+.simple-add-button:hover {
+  background: var(--ic-surface-muted);
+  color: var(--ic-ink);
+}
+
+.simple-inline-form {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  border-top: 1px solid var(--ic-line);
+  padding: 0.7rem;
+}
+
+.simple-inline-form > input {
+  grid-column: 1 / -1;
+}
+
+.simple-inline-form > .simple-icon-button {
+  justify-self: end;
+}
+
+.simple-new-block {
+  display: grid;
+  min-width: 0;
+  gap: 0.45rem;
+  border: 1px solid var(--ic-line);
+  border-radius: 1rem;
+  background: var(--ic-surface);
+  padding: 0.9rem;
+}
+
+.simple-new-block .simple-inline-form {
+  border-top: 0;
+  padding: 0;
+}
+
+@media (min-width: 36rem) {
+  .simple-inline-form {
+    display: flex;
+    align-items: center;
+  }
+
+  .simple-inline-form > input {
+    flex: 1 1 auto;
+  }
+}
+
 .ic-progress {
   overflow: hidden;
   width: 100%;

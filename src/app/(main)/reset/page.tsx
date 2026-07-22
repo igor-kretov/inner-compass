@@ -5,7 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChoiceChips } from "@/components/ui/choice-chips";
 import { Field, TextArea, TextInput } from "@/components/ui/form";
-import { localDateKey, newId, useAppStore } from "@/lib/app-store";
+import { localDateKey, useAppStore, type DailyPlan } from "@/lib/app-store";
+import {
+  addPlanTask,
+  createSimpleDayPlan,
+  orderedPlanTasks,
+  plannerBlocksForPlan,
+} from "@/lib/simple-day-plan";
 
 // Deliberately small, explicit and local. Keyword matching is incomplete and must
 // never be interpreted as a diagnosis or a professional risk assessment.
@@ -36,6 +42,15 @@ const bodyOptions = [
   { value: "Schultern und Kiefer entspannen", seconds: 60 },
   { value: "60 Sekunden den Raum beobachten", seconds: 60 },
 ];
+
+function addResetActionToPlan(plan: DailyPlan, title: string) {
+  const blocks = plannerBlocksForPlan(plan);
+  const target = blocks.find((block) =>
+    block.title.toLocaleLowerCase("de").includes("organisation"),
+  ) ?? blocks.find((block) => block.title === "Tages Block") ?? blocks[0];
+
+  return target ? addPlanTask(plan, target.id, title) : plan;
+}
 
 function BodyTimer({ seconds, onDone }: { seconds: number; onDone: () => void }) {
   const [remaining, setRemaining] = useState(seconds);
@@ -104,27 +119,16 @@ export default function ResetPage() {
   const finish = () => {
     let taskCreated = false;
     if (actionNeeded === "yes" && createTask && responsibleAction.trim()) {
-      if (todayPlan && todayPlan.secondaryTasks.length < 2) {
-        updatePlan((plan) => ({
-          ...plan,
-          secondaryTasks: [...plan.secondaryTasks, { id: newId(), title: responsibleAction.trim(), completed: false }],
-        }));
-        taskCreated = true;
-      } else if (todayPlan && !todayPlan.courageousAction) {
-        updatePlan((plan) => ({ ...plan, courageousAction: responsibleAction.trim() }));
-        taskCreated = true;
-      } else if (!todayPlan) {
-        savePlan({
-          date: localDateKey(),
-          mainTask: { id: newId(), title: responsibleAction.trim(), completed: false },
-          nextStep: responsibleAction.trim(),
-          secondaryTasks: [],
-          bodyCompleted: false,
-          meditationSkipped: false,
-          meditationCompleted: false,
-          courageousCompleted: false,
-        });
-        taskCreated = true;
+      const title = responsibleAction.trim();
+      if (todayPlan) {
+        const preview = addResetActionToPlan(todayPlan, title);
+        taskCreated = orderedPlanTasks(preview).length > orderedPlanTasks(todayPlan).length;
+        if (taskCreated) updatePlan((plan) => addResetActionToPlan(plan, title));
+      } else {
+        const plan = createSimpleDayPlan(localDateKey(), state.settings.timezone);
+        const prepared = addResetActionToPlan(plan, title);
+        taskCreated = orderedPlanTasks(prepared).length > orderedPlanTasks(plan).length;
+        if (taskCreated) savePlan(prepared);
       }
     }
     saveReset({
@@ -186,7 +190,7 @@ export default function ResetPage() {
         )}
         {step === 1 && <section><h1 className="text-3xl font-semibold tracking-[-0.04em]">Was ist das gerade am ehesten?</h1><ChoiceChips className="mt-7" label="Art des Vorgangs" value={kind} options={["Ein reales Problem", "Eine Entscheidung", "Eine Emotion", "Ein wiederkehrendes Szenario", "Ich weiß es nicht"].map((label) => ({ value: label, label }))} onChange={setKind} /></section>}
         {step === 2 && <section><h1 className="text-3xl font-semibold tracking-[-0.04em]">Ist in den nächsten 24 Stunden eine konkrete Handlung nötig?</h1><ChoiceChips className="mt-7" label="Handlungsprüfung" value={actionNeeded} options={[{ value: "yes", label: "Ja" }, { value: "no", label: "Nein" }, { value: "unclear", label: "Unklar" }]} onChange={(value) => setActionNeeded(value as typeof actionNeeded)} />
-          {actionNeeded === "yes" && <Card className="mt-6 grid gap-5"><Field label="Was ist die kleinste verantwortliche Handlung?" htmlFor="responsible-action"><TextInput id="responsible-action" value={responsibleAction} onChange={(event) => setResponsibleAction(event.target.value)} maxLength={180} /></Field><label className="flex min-h-12 items-center gap-3 text-sm"><input type="checkbox" className="size-5 accent-[var(--accent)]" checked={createTask} onChange={(event) => setCreateTask(event.target.checked)} />Als Tagesaufgabe übernehmen, wenn Platz ist</label></Card>}
+          {actionNeeded === "yes" && <Card className="mt-6 grid gap-5"><Field label="Was ist die kleinste verantwortliche Handlung?" htmlFor="responsible-action"><TextInput id="responsible-action" value={responsibleAction} onChange={(event) => setResponsibleAction(event.target.value)} maxLength={180} /></Field><label className="flex min-h-12 items-center gap-3 text-sm"><input type="checkbox" className="size-5 accent-[var(--accent)]" checked={createTask} onChange={(event) => setCreateTask(event.target.checked)} />Als Tagesaufgabe übernehmen</label></Card>}
           {actionNeeded === "no" && <Card className="mt-6"><h2 className="text-xl font-semibold">Dann musst du es jetzt nicht lösen.</h2><ChoiceChips className="mt-5" label="Später reflektieren?" value={later} options={["Heute Abend", "Morgen", "Im nächsten Wochenreview", "Nicht erneut einplanen"].map((label) => ({ value: label, label }))} onChange={setLater} /></Card>}
           {actionNeeded === "unclear" && <Card className="mt-6 grid gap-5"><Field label="Welche Information fehlt wirklich?" htmlFor="missing-info"><TextInput id="missing-info" value={missingInformation} onChange={(event) => setMissingInformation(event.target.value)} maxLength={180} /></Field><ChoiceChips label="Danach" value={unclearDecision} options={["Information beschaffen", "Entscheidung vertagen", "Thema loslassen"].map((label) => ({ value: label, label }))} onChange={setUnclearDecision} /></Card>}</section>}
         {step === 3 && <section><p className="eyebrow">Zurück in den Körper</p><h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em]">Wähle einen körperlichen Reset.</h1><ChoiceChips className="mt-7" label="Körperlicher Reset" value={bodyReset} options={bodyOptions.map((item) => ({ value: item.value, label: item.value }))} onChange={(value) => { setBodyReset(value); setTimerDone(!bodyOptions.find((item) => item.value === value)?.seconds); }} />{selectedBody?.seconds && <BodyTimer key={bodyReset} seconds={selectedBody.seconds} onDone={() => setTimerDone(true)} />}</section>}

@@ -264,12 +264,31 @@ function planToDomain(
   const planId = stableId(plan.id, "daily-plan");
   const primaryId = stableId(plan.mainTask.id, "daily-task");
   const secondaryIds = plan.secondaryTasks.map((task) => stableId(task.id, "daily-task"));
+  const plannerBlockIds = new Map(
+    (plan.plannerBlocks ?? []).map((block) => [
+      block.id,
+      stableId(block.id, "daily-plan-block"),
+    ]),
+  );
+  const domainPlannerBlockId = (id: string) =>
+    plannerBlockIds.get(id) ?? stableId(id, "daily-plan-block");
+  const plannerBlockId = (task: UiTask) =>
+    task.plannerBlockId
+      ? domainPlannerBlockId(task.plannerBlockId)
+      : null;
   const primaryStatus = uiTaskStatus(plan.mainTask);
   data.dailyPlans.push(
     DailyPlanSchema.parse({
       ...metadata(planId, plan.createdAt, plan.updatedAt, timeZone),
       localDate: plan.date,
       status: plan.reflection ? "closed" : "planned",
+      intention: optional(plan.intention) ?? null,
+      focusNote: optional(plan.focusNote) ?? null,
+      plannerBlocks: (plan.plannerBlocks ?? []).map((block) => ({
+        id: domainPlannerBlockId(block.id),
+        title: block.title,
+        note: optional(block.note) ?? null,
+      })),
       energy: plan.energy ?? null,
       mentalRestlessness: plan.mentalState ?? null,
       primaryTaskId: primaryId,
@@ -299,6 +318,7 @@ function planToDomain(
       dailyPlanId: planId,
       role: "primary",
       title: plan.mainTask.title,
+      plannerBlockId: plannerBlockId(plan.mainTask),
       nextStep: optional(plan.nextStep),
       order: 0,
       daySegment: plan.mainTask.section ?? "day",
@@ -338,6 +358,7 @@ function planToDomain(
         dailyPlanId: planId,
         role: "secondary",
         title: task.title,
+        plannerBlockId: plannerBlockId(task),
         order: index + 1,
         daySegment: task.section ?? "day",
         scheduledTime: task.plannedTime ?? null,
@@ -752,6 +773,7 @@ function planToUi(
       id: task.id,
       title: task.title,
       completed: status === "completed",
+      plannerBlockId: task.plannerBlockId ?? undefined,
       completedAt: task.completedAt ?? undefined,
       section: task.daySegment,
       plannedTime: task.scheduledTime ?? undefined,
@@ -768,6 +790,13 @@ function planToUi(
   return {
     id: plan.id,
     date: plan.localDate,
+    intention: plan.intention ?? undefined,
+    focusNote: plan.focusNote ?? undefined,
+    plannerBlocks: plan.plannerBlocks.map((block) => ({
+      id: block.id,
+      title: block.title,
+      note: block.note ?? undefined,
+    })),
     energy: plan.energy ?? undefined,
     mentalState: plan.mentalRestlessness ?? undefined,
     mainTask,

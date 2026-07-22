@@ -29,6 +29,7 @@ export type Task = {
   id: string;
   title: string;
   completed: boolean;
+  plannerBlockId?: string;
   completedAt?: string;
   section?: DaySection;
   plannedTime?: string;
@@ -102,9 +103,18 @@ export type WeekPlan = {
   timezone?: string;
 };
 
+export type PlannerBlock = {
+  id: string;
+  title: string;
+  note?: string;
+};
+
 export type DailyPlan = {
   id: string;
   date: string;
+  intention?: string;
+  focusNote?: string;
+  plannerBlocks?: PlannerBlock[];
   energy?: Energy;
   mentalState?: MentalState;
   mainTask: Task;

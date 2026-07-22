@@ -117,9 +117,27 @@ export const OnboardingStateSchema = BaseEntitySchema.extend({
   completedAt: IsoTimestampSchema.nullable().default(null),
 }).strict();
 
+export const MAX_DAILY_PLAN_BLOCKS = 20;
+export const MAX_DAILY_PLAN_SECONDARY_TASKS = 30;
+export const MAX_DAILY_PLAN_TASKS = MAX_DAILY_PLAN_SECONDARY_TASKS + 1;
+
 export const DailyPlanSchema = BaseEntitySchema.extend({
   localDate: LocalDateSchema,
   status: z.enum(["draft", "planned", "closed"]).default("draft"),
+  intention: shortText(500).nullable().default(null),
+  focusNote: shortText(500).nullable().default(null),
+  plannerBlocks: z
+    .array(
+      z
+        .object({
+          id: StableIdSchema,
+          title: shortText(100).min(1),
+          note: shortText(240).nullable().default(null),
+        })
+        .strict(),
+    )
+    .max(MAX_DAILY_PLAN_BLOCKS)
+    .default([]),
   energy: z.enum(["low", "medium", "high"]).nullable().default(null),
   mentalRestlessness: z
     .enum(["calm", "moving", "overloaded"])
@@ -128,7 +146,10 @@ export const DailyPlanSchema = BaseEntitySchema.extend({
   primaryTaskId: StableIdSchema.nullable().default(null),
   // Kept under its original name so existing primary/secondary exports remain valid.
   // In planner views this is the ordered, dynamic task list beside the primary task.
-  secondaryTaskIds: z.array(StableIdSchema).max(30).default([]),
+  secondaryTaskIds: z
+    .array(StableIdSchema)
+    .max(MAX_DAILY_PLAN_SECONDARY_TASKS)
+    .default([]),
   bodyActivity: optionalShortText(120),
   bodyCompletedAt: IsoTimestampSchema.nullable().default(null),
   meditationPlan: z
@@ -146,8 +167,9 @@ export const DailyTaskSchema = BaseEntitySchema.extend({
   dailyPlanId: StableIdSchema,
   role: z.enum(["primary", "secondary"]),
   title: shortText(240).min(1),
+  plannerBlockId: StableIdSchema.nullable().default(null),
   nextStep: optionalShortText(300),
-  order: z.number().int().min(0).max(30),
+  order: z.number().int().min(0).max(MAX_DAILY_PLAN_TASKS - 1),
   daySegment: DaySegmentSchema.default("day"),
   scheduledTime: LocalTimeSchema.nullable().default(null),
   status: z.enum(["open", "completed", "skipped", "deferred"]).default("open"),

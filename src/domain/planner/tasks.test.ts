@@ -51,6 +51,11 @@ describe("dynamische Tagesaufgaben", () => {
 
     expect(plan.primaryTaskId).toBe(uuid(91));
     expect(plan.secondaryTaskIds).toEqual(secondaryTaskIds);
+    expect(plan).toMatchObject({
+      intention: null,
+      focusNote: null,
+      plannerBlocks: [],
+    });
     expect(
       DailyPlanSchema.safeParse({
         ...plan,
@@ -71,6 +76,7 @@ describe("dynamische Tagesaufgaben", () => {
     });
     expect(legacyTask).toMatchObject({
       role: "secondary",
+      plannerBlockId: null,
       daySegment: "day",
       scheduledTime: null,
       status: "open",

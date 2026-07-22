@@ -2,7 +2,7 @@
 
 ## Ziel
 
-Tests schützen die Stellen, an denen falsche Ergebnisse oder Datenverlust besonders wahrscheinlich wären: lokale Tagesgrenzen, unabhängige Routineinstanzen, Aufgabenstatus und Verschiebungen, Wochenzuordnung, persistente Timer, Import/Export, Migrationen, Zusammenführung und die Schwellenwerte vorsichtiger Musterhinweise. Oberflächentests sichern die wichtigsten Handlungsflüsse auf mobilen Viewports.
+Tests schützen die Stellen, an denen falsche Ergebnisse oder Datenverlust besonders wahrscheinlich wären: lokale Tagesgrenzen, Vorlagenkopien, Reihenfolge und Abschlussstatus der Blockaufgaben, persistente Timer, Import/Export, Migrationen, Zusammenführung und die Schwellenwerte vorsichtiger Musterhinweise. Oberflächentests sichern die wichtigsten Handlungsflüsse auf mobilen Viewports.
 
 Die Testpyramide besteht aus schnellen Unit-Tests, gezielten Komponententests und wenigen vollständigen Playwright-Flows.
 
@@ -65,6 +65,9 @@ Wichtige Abdeckung:
 - Wochenfokus, höchstens drei Ergebnisse, ein auf 30 begrenzter Aufgabenparkplatz und unabhängige Status-/Datumsänderungen;
 - Datenbankversion 3 mit CRUD und Export für Routinen, Routineinstanzen und Wochenpläne;
 - verlustfreier Planer-Roundtrip durch Export, Import und `AppState`-Adapter;
+- genau einmaliges Erzeugen eines leeren Tages aus der sechsblöckigen Vorlage;
+- stabile Aufgabenreihenfolge beim Verschieben innerhalb eines Blocks und zwischen Blöcken;
+- Rückwärtskompatibilität alter Tagespläne ohne Blockmetadaten;
 - Musterschwellen unter 5, bei 5–9 und ab 10 Einträgen;
 - konservative lokale Krisenformulierungen, einschließlich unkritischer Gegenbeispiele.
 
@@ -72,12 +75,9 @@ Wichtige Abdeckung:
 
 React Testing Library prüft Verhalten aus Nutzersicht. Abfragen erfolgen bevorzugt über Rollen, Namen, Labels und sichtbare Texte statt CSS-Klassen. Abgedeckt werden insbesondere:
 
-- Tagesplanung speichern, reduziert anzeigen, bearbeiten und Aufgabe abschließen;
-- zugänglich zwischen den Today-Tabs Tag, Routinen und Woche wechseln;
-- eine Routine mit Wochentagen, optionaler Uhrzeit und mehreren Schritten anlegen;
-- einen Routineschritt abhaken und die Tagesinstanz bewusst auslassen;
-- eine Aufgabe mit Tagesabschnitt und Uhrzeit anlegen und auf morgen verschieben;
-- einen Wochenplan speichern, eine geparkte Aufgabe bewusst einem Tag zuordnen und diesen Tag öffnen;
+- einen leeren Tag aus der Vorlage vorbereiten und alle sechs Blöcke anzeigen;
+- eine Aufgabe direkt in einem Block ergänzen und abhaken beziehungsweise wieder öffnen;
+- die datierte Planüberschrift und die reduzierte Oberfläche ohne alte Spezialfelder anzeigen;
 - Starthelfer bis zum 10-Minuten-Block;
 - Reset-Flow einschließlich Körperauswahl und Rückkehr;
 - Fokusabschluss mit Ergebnis und nächstem Schritt;
@@ -92,18 +92,19 @@ Für Persistenztests werden isolierte Repository-Instanzen beziehungsweise Fakes
 
 ## End-to-End-Flows
 
-Playwright startet die App gemäß `playwright.config.ts` und verwendet mindestens einen modernen iPhone-ähnlichen Viewport. Die sieben kritischen Wege sind:
+Playwright startet die App gemäß `playwright.config.ts` und verwendet mindestens einen modernen iPhone-ähnlichen Viewport. Die kritischen Wege sind:
 
 ### A – Erster Start
 
 1. App ohne Daten öffnen.
 2. Onboarding abschließen.
-3. Tagesplan erstellen.
-4. gespeicherte Hauptaufgabe sehen.
+3. den morgigen Tag aus der Vorlage vorbereiten.
+4. die exakte datierte Überschrift und alle sechs Blöcke sehen.
+5. einen Punkt abhaken, eine Aufgabe ergänzen und beide Zustände nach Reload wiederfinden.
 
 ### B – Aufgabe starten
 
-1. Hauptaufgabe öffnen.
+1. Fokus direkt öffnen und ein sichtbares Ergebnis eingeben.
 2. 10-Minuten-Fokus starten.
 3. Block kontrolliert beenden.
 4. Ergebnis erfassen.
@@ -132,20 +133,12 @@ Playwright startet die App gemäß `playwright.config.ts` und verwendet mindeste
 4. Export wieder importieren und bestätigen.
 5. wiederhergestellte Anzahl und Kerninhalt prüfen.
 
-### F – Routine und Tagesaufgabe
+### F – Tagesplan ordnen
 
-1. Today öffnen und eine Routine mit mehreren Schritten anlegen.
-2. im Tag-Tab einen Schritt der heutigen Instanz erledigen.
-3. eine zusätzliche Tagesaufgabe mit Abschnitt und Uhrzeit anlegen.
-4. die Aufgabe bewusst auf morgen verschieben.
-5. im nächsten Tag die übertragene Aufgabe prüfen.
-
-### G – Wochenaufgabe einem Tag zuordnen
-
-1. im Woche-Tab Fokus, Ergebnisse und eine geparkte Aufgabe speichern.
-2. die Aufgabe bewusst einem Datum zuordnen.
-3. den zugeordneten Tag öffnen.
-4. die Aufgabe im Tagesplan prüfen.
+1. einen vorbereiteten Tagesplan öffnen.
+2. eine Aufgabe innerhalb eines Blocks per Drag-and-drop umsortieren.
+3. eine Aufgabe in einen anderen Block verschieben.
+4. die sichtbare Reihenfolge nach Reload erneut prüfen.
 
 Timer-E2E-Tests warten nicht zehn echte Minuten. Sie verwenden kontrollierte Zeit oder einen expliziten Testpfad, ohne Produktionsdaten mit Demo-Einträgen zu vermischen.
 
@@ -156,7 +149,7 @@ Service Worker und Offline-Verhalten werden mit einer Produktionsversion geprüf
 1. `npm run build` und `npm run start` ausführen.
 2. App online öffnen und die Service-Worker-Registrierung in den Browser-Werkzeugen prüfen.
 3. Manifest, 192-/512-PNG und maskierbares Icon prüfen.
-4. mindestens `/today` einschließlich aller drei Tabs, `/focus`, `/reset`, `/reflection` und `/settings` einmal laden.
+4. mindestens `/today`, `/focus`, `/reset`, `/reflection` und `/settings` einmal laden.
 5. Browser auf offline stellen und eine bereits geladene Route erneut öffnen.
 6. eine noch nie geladene Route öffnen und den verständlichen Fallback prüfen.
 7. wieder online gehen und kontrollieren, dass aktuelle Inhalte geladen werden.
@@ -168,9 +161,9 @@ Zusätzlich auf einem echten iPhone testen:
 - Safe Areas, Bottom Navigation und Tastatur bei Textfeldern;
 - Standalone-Start, Theme-Farbe und App-Icon;
 - Timer nach Bildschirmwechsel beziehungsweise erneutem Öffnen;
-- Today-Tabs, Datumsleiste und die Abschnitte Morgen, Tag und Abend auf schmaler Breite;
-- Routine anlegen, Schritt abhaken, Tagesinstanz auslassen und danach einen anderen Tag öffnen;
-- zusätzliche Aufgabe mit Uhrzeit verschieben sowie eine geparkte Wochenaufgabe bewusst einem Tag zuordnen;
+- Datumsleiste, Planüberschrift und alle sechs Tagesblöcke auf schmaler Breite;
+- Tag aus Vorlage vorbereiten, Punkt abhaken und eine eigene Aufgabe ergänzen;
+- Drag-and-drop innerhalb eines Blocks und zwischen zwei Blöcken; zusätzlich die zugängliche Tastaturbedienung der Verschiebegriffe prüfen;
 - Verhalten ohne Netz nach einem vollständigen ersten Laden.
 
 Ein erfolgreicher Desktop-Lighthouse-Lauf ersetzt diese iOS-Prüfung nicht.
